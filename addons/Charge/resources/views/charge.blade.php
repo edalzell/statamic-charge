@@ -7,6 +7,7 @@
             <th>Email</th>
             <th>Description</th>
             <th>Amount</th>
+            <th>Stripe</th>
         </tr>
         @foreach ($charges as $charge)
             <tr>
@@ -14,6 +15,7 @@
                 <td>{{ $charge['receipt_email'] }}</td>
                 <td>{{ $charge['description'] }}</td>
                 <td>${{ number_format($charge['amount'] / 100, 2) }}</td>
+                <td><a href="https://dashboard.stripe.com/payments/{{ $charge['id'] }}">Transaction</a></td>
             </tr>
         @endforeach
     </table>
