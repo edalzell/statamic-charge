@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge;
 
+use Statamic\API\Crypt;
 use Statamic\Extend\Controller;
 
 class ChargeController extends Controller
@@ -17,7 +18,7 @@ class ChargeController extends Controller
     /**
      * Maps to your route definition in routes.yaml
      *
-     * @return Illuminate\Http\Response
+     * @return \Illuminate\Http\Response
      */
     public function index()
     {
@@ -28,12 +29,18 @@ class ChargeController extends Controller
     {
         try
         {
-            $this->charge->process(request()->except('_token'));
+            $charge = $this->charge->processPayment(request()->except(['_token', '_params']));
+
+            $this->flash->put('success', true);
+            $this->flash->put('details', $charge);
+
+            $redirect = array_get(Crypt::decrypt(request()->input('_params')), 'redirect');
+
+            return ($redirect) ? redirect($redirect) : back();
         }
         catch (\Stripe\Error\Base $e)
         {
-            // what to do here????
-
+            return back()->withInput()->withErrors($e->getMessage());
         }
     }
 }

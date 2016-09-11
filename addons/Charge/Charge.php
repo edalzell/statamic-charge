@@ -22,7 +22,7 @@ class Charge extends Addon
      *
      * @return string           the Stripe id for the Charge
      */
-    public function process($purchase)
+    public function processPayment($purchase)
     {
         /** @var \Stripe\Charge $charge */
         $charge = StripeCharge::create(array(
@@ -31,11 +31,11 @@ class Charge extends Addon
             'currency' => 'usd',
             'receipt_email' => $purchase['stripeEmail'],
             'description' => $purchase['description']
-        ));
+        ))->__toArray(true);
 
-        $this->storage->putYAML(time(), $charge->__toArray(true));
+        $this->storage->putYAML(time(), $charge);
 
-        return $charge->id;
+        return $charge;
     }
 
     public function getCharges()

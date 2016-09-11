@@ -19,7 +19,7 @@ class ChargeListener extends Listener
         'cp.nav.created'  => 'nav',
     ];
 
-    /** @var  \Statamic\Addons\Charge\ */
+    /** @var  \Statamic\Addons\Charge\Charge */
     private $charge;
 
     public function init()
@@ -29,6 +29,7 @@ class ChargeListener extends Listener
 
     /**
      * @param \Statamic\Forms\Submission $submission
+     *
      * @return \Statamic\Forms\Submission
      */
     public function charge($submission)
@@ -37,7 +38,7 @@ class ChargeListener extends Listener
         {
             try
             {
-                $charge_id = $this->charge($submission);
+                $submission['charge'] = $this->charge->processPayment($submission->data());
             } catch (\Stripe\Error\Base $e)
             {
                 return ['errors' => $e->getMessage()];
