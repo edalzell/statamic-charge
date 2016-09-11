@@ -1,8 +1,10 @@
-README
+## INSTALLATION ##
 
-Copy Charge folder to `site/addons` and create (or copy) the settings file to `site/settings/addons/charge.yaml`
+1. Copy Charge folder to `site/addons`
+2. Create (or copy) the settings file to `site/settings/addons/charge.yaml`
+3. Run `php please addons:refresh`
 
-Settings:
+## SETTINGS ##
 
 * in `charge.yaml`
 	* `formset` - which forest you'll be using for the Form submission
@@ -11,7 +13,7 @@ Settings:
 	* `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
 	* `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
 
-Usage:
+## USAGE ##
 
 There are two ways to use it, either with Statamic's `Form` tag, or with Charge's `{{ charge:form }}`
 
