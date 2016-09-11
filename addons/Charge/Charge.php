@@ -5,6 +5,7 @@ namespace Statamic\Addons\Charge;
 use Stripe\Stripe;
 use Statamic\API\File;
 use Statamic\API\YAML;
+use Statamic\API\Crypt;
 use Statamic\API\Folder;
 use Statamic\Extend\Addon;
 use Stripe\Charge as StripeCharge;
@@ -33,6 +34,7 @@ class Charge extends Addon
             'description' => $purchase['description']
         ))->__toArray(true);
 
+        // store the charge details so we can see them later
         $this->storage->putYAML(time(), $charge);
 
         return $charge;
@@ -45,6 +47,11 @@ class Charge extends Addon
         return collect($files)->map(function ($path) {
             return YAML::parse(File::disk('storage')->get($path));
         });
+    }
+
+    public function decryptParams()
+    {
+        return Crypt::decrypt(request()->input('_charge_params'));
     }
 
     /**

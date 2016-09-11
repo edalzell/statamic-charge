@@ -3,18 +3,26 @@
 namespace Statamic\Addons\Charge;
 
 use Statamic\API\Crypt;
+use Statamic\API\Helper;
 use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
 {
     /**
-     * The {{ charge }} tag
+     * The {{ charge:data }} tag
      *
-     * @return string|array
+     * @return string
      */
-    public function index()
+    public function data()
     {
-        //
+        $params = [];
+
+        $params['amount'] = $this->get('amount');
+        $params['description'] = $this->get('description');
+
+        $html = '<input type="hidden" name="_charge_params" value="'. Crypt::encrypt($params) .'" />';
+
+        return $html;
     }
 
     /**
@@ -29,6 +37,10 @@ class ChargeTags extends Tags
 
         $html = $this->formOpen('process');
 
+        // grab the amount & description
+        $params['amount'] = $this->get('amount');
+        $params['description'] = $this->get('description');
+
         if ($this->flash->exists('success'))
         {
             $data['success'] = true;
@@ -39,7 +51,8 @@ class ChargeTags extends Tags
             $params['redirect'] = $redirect;
         }
 
-        $html .= '<input type="hidden" name="_params" value="'. Crypt::encrypt($params) .'" />';
+        // need to encrypt the amount & description so they can't be modified
+        $html .= '<input type="hidden" name="_charage_params" value="'. Crypt::encrypt($params) .'" />';
 
         $html .= $this->parse($data);
 
@@ -47,4 +60,26 @@ class ChargeTags extends Tags
 
         return $html;
     }
+
+    /**
+     * The {{ charge:js }} tag
+     *
+     * @return string|array
+     */
+    public function js()
+    {
+        $js = '';
+        $show_on = $this->getConfig('show_on', array());
+
+        // only add it if we're on the right template or it's not set at all
+        if (!$show_on || in_array($this->context['template'], Helper::ensureArray($show_on), true))
+        {
+            $js = '<script src="https://js.stripe.com/v2/"></script>' . PHP_EOL;
+            $js .= $this->js->tag("charge") . PHP_EOL;
+            $js .= $this->js->inline("Stripe.setPublishableKey('" . env('STRIPE_PUBLIC_KEY') . "')") . PHP_EOL;
+        }
+
+        return $js;
+    }
+
 }

@@ -30,7 +30,7 @@ class ChargeListener extends Listener
     /**
      * @param \Statamic\Forms\Submission $submission
      *
-     * @return \Statamic\Forms\Submission
+     * @return \Statamic\Forms\Submission|array
      */
     public function charge($submission)
     {
@@ -38,7 +38,14 @@ class ChargeListener extends Listener
         {
             try
             {
-                $submission['charge'] = $this->charge->processPayment($submission->data());
+                // merge the encrypted params (amount, description) with the form data
+                $data = array_merge($this->charge->decryptParams(), $submission->data());
+
+                // add the Stripe token form the request
+                $data['stripeToken'] = request()->get('stripeToken');
+
+                // get paid and add the charge details to the submission
+                $submission->set('charge', $this->charge->processPayment($data));
             } catch (\Stripe\Error\Base $e)
             {
                 return ['errors' => $e->getMessage()];

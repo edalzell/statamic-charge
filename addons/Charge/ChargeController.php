@@ -29,12 +29,17 @@ class ChargeController extends Controller
     {
         try
         {
-            $charge = $this->charge->processPayment(request()->except(['_token', '_params']));
+            // the amount, description and redirect have been encrypted from the tag
+            $params = $this->charge->decryptParams();
+            $data = request()->except(['_token', '_params']);
+
+            // process the payment
+            $charge = $this->charge->processPayment(array_merge($params, $data));
 
             $this->flash->put('success', true);
             $this->flash->put('details', $charge);
 
-            $redirect = array_get(Crypt::decrypt(request()->input('_params')), 'redirect');
+            $redirect = array_get($params, 'redirect');
 
             return ($redirect) ? redirect($redirect) : back();
         }
