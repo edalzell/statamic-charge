@@ -4,11 +4,7 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
 use Stripe\Refund;
-use Statamic\API\URL;
-use Statamic\API\File;
-use Statamic\API\YAML;
 use Statamic\API\Crypt;
-use Statamic\API\Folder;
 use Statamic\Extend\Addon;
 use Stripe\Charge as StripeCharge;
 
@@ -23,7 +19,7 @@ class Charge extends Addon
      * Charge a card
      * @param array $purchase   array of charging details
      *
-     * @return string           the Stripe id for the Charge
+     * @return array           the Charge data
      */
     public function processPayment($purchase)
     {
@@ -58,6 +54,8 @@ class Charge extends Addon
     }
 
     /**
+     * This converts from a UTC timestamp to a DateTime in the local PHP timezone
+     *
      * @param $timestamp    UTC timestamp
      * @return \DateTime
      */
@@ -73,19 +71,5 @@ class Charge extends Addon
         $dt->setTimezone(new \DateTimeZone(ini_get('date.timezone')));
 
         return $dt;
-    }
-
-    /**
-     * Return the refund action link
-     *
-     * @param string $id
-     *
-     * @return string
-     */
-    public static function getRefundLink($id)
-    {
-        $action = $customer['auto_renew'] ? 'withdraw' : 'reinstate';
-
-        return '<a href="' . URL::assemble( 'charge', 'refund', $id) . '">Refund</a>';
     }
 }

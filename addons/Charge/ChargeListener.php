@@ -42,11 +42,14 @@ class ChargeListener extends Listener
                 // merge the encrypted params (amount, description) with the form data
                 $data = array_merge($this->charge->decryptParams(), $submission->data());
 
-                // add the Stripe token form the request
+                // add the Stripe token from the request
                 $data['stripeToken'] = request()->get('stripeToken');
 
-                // get paid and add the charge details to the submission
-                $submission->set('charge', $this->charge->processPayment($data));
+                // get paid
+                $charge = $this->charge->processPayment($data);
+
+                // add the charge id to the submission
+                $submission->set('charge_id', $charge['id']);
             } catch (\Stripe\Error\Base $e)
             {
                 return ['errors' => $e->getMessage()];
@@ -57,7 +60,7 @@ class ChargeListener extends Listener
     }
 
     /**
-     * Add Stripe to the side nav
+     * Add Charge to the side nav
      * @param  Nav    $nav [description]
      * @return void
      */
@@ -67,6 +70,11 @@ class ChargeListener extends Listener
         $nav->addTo('tools', $charge);
     }
 
+    /**
+     * Need some JS in the CP to deal with the refund confirmations
+     *
+     * @return string
+     */
     public function addToHead()
     {
         return $this->js->tag("charge-cp") . PHP_EOL;
