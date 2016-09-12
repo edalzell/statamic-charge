@@ -17,6 +17,7 @@ class ChargeListener extends Listener
     public $events = [
         'Form.submission.creating' => 'charge',
         'cp.nav.created'  => 'nav',
+        'cp.add_to_head' => 'addToHead'
     ];
 
     /** @var  \Statamic\Addons\Charge\Charge */
@@ -64,6 +65,11 @@ class ChargeListener extends Listener
     {
         $charge = (new NavItem)->name('Charge')->route('charge')->icon('credit-card');
         $nav->addTo('tools', $charge);
+    }
+
+    public function addToHead()
+    {
+        return $this->js->tag("charge-cp") . PHP_EOL;
     }
 
 }

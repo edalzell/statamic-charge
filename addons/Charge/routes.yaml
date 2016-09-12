@@ -3,3 +3,6 @@ routes:
   /:
     uses: index
     as: charge
+
+  # refund charge
+  /refund/{id}: refund

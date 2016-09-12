@@ -3,6 +3,8 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
+use Stripe\Refund;
+use Statamic\API\URL;
 use Statamic\API\File;
 use Statamic\API\YAML;
 use Statamic\API\Crypt;
@@ -26,26 +28,27 @@ class Charge extends Addon
     public function processPayment($purchase)
     {
         /** @var \Stripe\Charge $charge */
-        $charge = StripeCharge::create(array(
+        return StripeCharge::create(array(
             'source' => $purchase['stripeToken'],
             'amount'   =>$purchase['amount'],
             'currency' => 'usd',
             'receipt_email' => $purchase['stripeEmail'],
             'description' => $purchase['description']
         ))->__toArray(true);
+    }
 
-        // store the charge details so we can see them later
-        $this->storage->putYAML(time(), $charge);
-
-        return $charge;
+    public function refund($id)
+    {
+        $re = Refund::create(array("charge" => $id));
     }
 
     public function getCharges()
     {
-        $files = Folder::disk('storage')->getFilesByTypeRecursively('addons/' . $this->getAddonClassName(), 'yaml');
+        $charges = StripeCharge::all(array(['limit'=>100]))->__toArray(true);
 
-        return collect($files)->map(function ($path) {
-            return YAML::parse(File::disk('storage')->get($path));
+        // only want the ones that have NOT been refunded
+        return collect($charges['data'])->filter(function ($charge) {
+            return !$charge['refunded'];
         });
     }
 
@@ -70,5 +73,19 @@ class Charge extends Addon
         $dt->setTimezone(new \DateTimeZone(ini_get('date.timezone')));
 
         return $dt;
+    }
+
+    /**
+     * Return the refund action link
+     *
+     * @param string $id
+     *
+     * @return string
+     */
+    public static function getRefundLink($id)
+    {
+        $action = $customer['auto_renew'] ? 'withdraw' : 'reinstate';
+
+        return '<a href="' . URL::assemble( 'charge', 'refund', $id) . '">Refund</a>';
     }
 }

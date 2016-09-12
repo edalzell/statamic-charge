@@ -48,4 +48,13 @@ class ChargeController extends Controller
             return back()->withInput()->withErrors($e->getMessage());
         }
     }
+
+    public function refund($id = null)
+    {
+        $this->charge->refund($id);
+
+        // redirect back to main page
+        return response()->redirectToRoute('charge');
+    }
+
 }
