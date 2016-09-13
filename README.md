@@ -9,6 +9,7 @@
 * in `charge.yaml`
 	* `formset` - which forest you'll be using for the Form submission
 	* `show_on` - an array that lists which templates the Charge JS should appear on, or leave out for all pages
+	* `currency` - default currency for payments
 * in your `.env` file, which MUST NOT be checked in:
 	* `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
 	* `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
@@ -19,7 +20,7 @@ There are two ways to use it, either with Statamic's `Form` tag, or with Charge'
 
 Charge Form
 
-* pass in the `amount` and `description` as parameters on the tag
+* pass in the `amount`, `description`, and optionally the `currency` as parameters on the tag
 * if you want to redirect the customer after the charge, use a `redirect` parameter
 * `{{ success }}` and `{{ details }}` are available to you after a successful charge.
 
@@ -27,7 +28,7 @@ Statamic Form
 
 * the following fields *must* be in your form:
     * `stripeEmail` - email of customer
-* somewhere in your form you need to set the `amount` and `description` via `{{ charge:data }}`	
+* somewhere in your form you need to set the `amount`, `description`, and optionally `currency` via `{{ charge:data }}`	
 * this is the template where the `{{ charge:js }}` needs to be
 * please note the `data-*` attributes on the form items. Those are required.
 
@@ -48,7 +49,7 @@ Example - Charge Form - Stripe Checkout:
             data-description="{{ description }}"
             data-image="/img/documentation/checkout/marketplace.png"
             data-locale="auto"
-            data-currency="usd">
+            data-currency="{{ currency }}">
     </script>
 {{ /charge:form }}
 ```
@@ -103,7 +104,7 @@ Example - Statamic Form:
 
 	</fieldset>
 
-	{{ charge:data amount="{amount}" description="{description}" }}
+	{{ charge:data amount="{amount}" description="{description}" currency="cad" }}
 
 	<button class="button primary" id="register" data-charge-button>Pay</button>
 
