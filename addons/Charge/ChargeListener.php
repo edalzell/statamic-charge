@@ -5,6 +5,7 @@ namespace Statamic\Addons\Charge;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Statamic\CP\Navigation\NavItem;
+use Monolog;
 
 
 class ChargeListener extends Listener
@@ -52,7 +53,8 @@ class ChargeListener extends Listener
                 $submission->set('charge_id', $charge['id']);
             } catch (\Stripe\Error\Base $e)
             {
-                return ['errors' => $e->getMessage()];
+                \Log::error($e->getMessage());
+                return array('errors' => array([$e->getMessage()]));
             }
         }
 

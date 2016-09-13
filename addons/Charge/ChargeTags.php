@@ -41,7 +41,7 @@ class ChargeTags extends Tags
         $params['amount'] = $this->get('amount');
         $params['description'] = $this->get('description');
 
-        if ($this->flash->exists('success'))
+        if ($this->success())
         {
             $data['success'] = true;
             $data['details'] = $this->flash->get('details');
@@ -59,6 +59,45 @@ class ChargeTags extends Tags
         $html .= '</form>';
 
         return $html;
+    }
+
+    /**
+     * Maps to {{ charge:success }}
+     *
+     * @return bool
+     */
+    public function success()
+    {
+        return $this->flash->exists('success');
+    }
+
+    /**
+     * Maps to {{ charge:details }}
+     *
+     * @return array
+     */
+    public function details()
+    {
+        if ($this->success()) {
+            return $this->flash->get('details');
+        }
+    }
+
+    public function errors()
+    {
+        if (! $this->hasErrors()) {
+            return false;
+        }
+
+        $errors = [];
+
+        foreach (session('errors')->getBag('charge')->all() as $error) {
+            $errors[]['value'] = $error;
+        }
+
+        return ($this->content === '')    // If this is a single tag...
+            ? !empty($errors)             // just output a boolean.
+            : $this->parseLoop($errors);  // Otherwise, parse the content loop.
     }
 
     /**
@@ -82,4 +121,16 @@ class ChargeTags extends Tags
         return $js;
     }
 
+
+    /**
+     * Does this form have errors?
+     *
+     * @return bool
+     */
+    private function hasErrors()
+    {
+        return (session()->has('errors'))
+            ? session()->get('errors')->hasBag('charge')
+            : false;
+    }
 }
