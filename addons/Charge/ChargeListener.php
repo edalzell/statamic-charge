@@ -54,7 +54,7 @@ class ChargeListener extends Listener
             } catch (\Stripe\Error\Base $e)
             {
                 \Log::error($e->getMessage());
-                return array('errors' => array([$e->getMessage()]));
+                return array('errors' => array($e->getMessage()));
             }
         }
 
