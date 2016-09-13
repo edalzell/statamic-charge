@@ -27,7 +27,7 @@ class Charge extends Addon
         return StripeCharge::create(array(
             'source' => $purchase['stripeToken'],
             'amount'   =>$purchase['amount'],
-            'currency' => 'usd',
+            'currency' => array_get($purchase, 'currency', $this->getConfig('currency', 'usd')),
             'receipt_email' => $purchase['stripeEmail'],
             'description' => $purchase['description']
         ))->__toArray(true);

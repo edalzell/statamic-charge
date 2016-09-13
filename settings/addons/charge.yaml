@@ -1,2 +1,3 @@
 formset: charge
 show_on: chargeform
+currency: cad

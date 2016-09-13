@@ -19,6 +19,7 @@ class ChargeTags extends Tags
 
         $params['amount'] = $this->get('amount');
         $params['description'] = $this->get('description');
+        $params['currency'] = $this->get('currency');
 
         $html = '<input type="hidden" name="_charge_params" value="'. Crypt::encrypt($params) .'" />';
 
@@ -40,6 +41,7 @@ class ChargeTags extends Tags
         // grab the amount & description
         $params['amount'] = $this->get('amount');
         $params['description'] = $this->get('description');
+        $params['currency'] = $this->get('currency');
 
         if ($this->success())
         {
