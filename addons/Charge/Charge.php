@@ -4,6 +4,8 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
 use Stripe\Refund;
+use Carbon\Carbon;
+use Statamic\API\Config;
 use Statamic\API\Crypt;
 use Statamic\Extend\Addon;
 use Stripe\Charge as StripeCharge;
@@ -63,12 +65,12 @@ class Charge extends Addon
     {
         /** @var \DateTime $dt */
 
-        $dt = new \DateTime( '@' . $timestamp, new \DateTimeZone('Etc/UTC'));
+        $dt = new Carbon( '@' . $timestamp, 'Etc/UTC');
 
         /*
          * Convert to the server timezone
          */
-        $dt->setTimezone(new \DateTimeZone(ini_get('date.timezone')));
+        $dt->tz(Config::get('system.timezone'));
 
         return $dt;
     }
