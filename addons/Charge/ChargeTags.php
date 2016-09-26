@@ -3,7 +3,6 @@
 namespace Statamic\Addons\Charge;
 
 use Statamic\API\Crypt;
-use Statamic\API\Helper;
 use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
@@ -34,14 +33,9 @@ class ChargeTags extends Tags
     public function form()
     {
         $data = [];
-        $params = [];
+        $params = $this->parameters;
 
         $html = $this->formOpen('process');
-
-        // grab the amount & description
-        $params['amount'] = $this->get('amount');
-        $params['description'] = $this->get('description');
-        $params['currency'] = $this->get('currency');
 
         if ($this->success())
         {
@@ -83,6 +77,8 @@ class ChargeTags extends Tags
         if ($this->success()) {
             return $this->flash->get('details');
         }
+
+        return [];
     }
 
     public function errors()
@@ -109,16 +105,9 @@ class ChargeTags extends Tags
      */
     public function js()
     {
-        $js = '';
-        $show_on = $this->getConfig('show_on', array());
-
-        // only add it if we're on the right template or it's not set at all
-        if (!$show_on || in_array($this->context['template'], Helper::ensureArray($show_on), true))
-        {
-            $js = '<script src="https://js.stripe.com/v2/"></script>' . PHP_EOL;
-            $js .= $this->js->tag("charge") . PHP_EOL;
-            $js .= $this->js->inline("Stripe.setPublishableKey('" . env('STRIPE_PUBLIC_KEY') . "')") . PHP_EOL;
-        }
+        $js = '<script src="https://js.stripe.com/v2/"></script>' . PHP_EOL;
+        $js .= $this->js->tag("charge") . PHP_EOL;
+        $js .= $this->js->inline("Stripe.setPublishableKey('" . env('STRIPE_PUBLIC_KEY') . "')") . PHP_EOL;
 
         return $js;
     }

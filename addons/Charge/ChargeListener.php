@@ -2,11 +2,10 @@
 
 namespace Statamic\Addons\Charge;
 
+use Log;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Statamic\CP\Navigation\NavItem;
-use Monolog;
-
 
 class ChargeListener extends Listener
 {
@@ -17,9 +16,12 @@ class ChargeListener extends Listener
      */
     public $events = [
         'Form.submission.creating' => 'charge',
+        'user.registering' => 'register',
+        'Charge.cancel' =>  'cancel',
+        'Charge.resubscribe' => 'resubscribe',
         'cp.nav.created'  => 'nav',
-        'cp.add_to_head' => 'addToHead'
-    ];
+        'cp.add_to_head' => 'addToHead',
+   ];
 
     /** @var  \Statamic\Addons\Charge\Charge */
     private $charge;
@@ -36,22 +38,24 @@ class ChargeListener extends Listener
      */
     public function charge($submission)
     {
+        // only do something if we're on the right formset
         if ($submission->formset()->name() === $this->getConfig('formset'))
         {
             try
             {
                 // merge the encrypted params (amount, description) with the form data
-                $data = array_merge($this->charge->decryptParams(), $submission->data());
+                $details = array_merge($this->charge->decryptParams(), $submission->data());
 
                 // add the Stripe token from the request
-                $data['stripeToken'] = request()->get('stripeToken');
+                $details['stripeToken'] = request('stripeToken');
+                $details['plan'] = request('plan');
 
                 // get paid
-                $charge = $this->charge->processPayment($data);
+                $charge = $this->charge->charge($details);
 
                 // add the charge id to the submission
-                $submission->set('charge_id', $charge['id']);
-            } catch (\Stripe\Error\Base $e)
+                $submission->set('customer_id', $charge['customer']['id']);
+            } catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
                 return array('errors' => array($e->getMessage()));
@@ -59,6 +63,39 @@ class ChargeListener extends Listener
         }
 
         return $submission;
+    }
+
+    /**
+     * @param \Statamic\Data\Users\User $user
+     *
+     * @return \Statamic\Data\Users\User|array
+     */
+    public function register($user)
+    {
+        // only do something we actually offer memberhips
+        if (!$this->getConfig('offer_memberships', false))
+        {
+            return $user;
+        }
+
+        try
+        {
+            $details = array_merge($this->charge->decryptParams(), request()->all());
+            $details['stripeEmail'] = $user->email();
+
+            $charge = $this->charge->charge($details);
+
+            // Add the customer_id
+            $this->charge->updateUser($user, $charge['customer']['id']);
+        }
+        catch (\Exception $e)
+        {
+            Log::error($e->getMessage());
+            $errors = array('errors'=>array($e->getMessage()));
+            return $errors;
+        }
+
+        return $user;
     }
 
     /**
@@ -80,6 +117,27 @@ class ChargeListener extends Listener
     public function addToHead()
     {
         return $this->js->tag("charge-cp") . PHP_EOL;
+    }
+
+    public function cancel()
+    {
+        $this->charge->cancel($this->getId());
+    }
+
+    public function resubscribe()
+    {
+        $this->charge->resubscribe($this->getId());
+    }
+
+
+    /**
+     * Grab the id from the URL
+     *
+     * @return string
+     */
+    private function getId()
+    {
+        return request()->segment(4);
     }
 
 }

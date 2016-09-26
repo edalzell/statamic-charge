@@ -4,5 +4,26 @@ routes:
     uses: index
     as: charge
 
+  # list the customers
+  /customers:
+    uses: customers
+    as: lists.customers
+
+  # list the charges
+  /charges:
+    uses: charges
+    as: lists.charges
+
+  # list the subscriptions
+  /subscriptions:
+    uses: subscriptions
+    as: lists.subscriptions
+
   # refund charge
   /refund/{id}: refund
+
+  # cancel subscription for the given customer id
+  /cancel/{id}: cancel
+
+  # resubscribe the given customer id
+  /resubscribe/{id}: resubscribe
