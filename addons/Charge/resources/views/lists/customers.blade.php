@@ -10,7 +10,7 @@
     @foreach ($customers as $customer)
         <tr>
             <td>{{ $customer['email'] }}</td>
-            <td>{{ $customer['id'] }}</td>
+            <td><a href="https://dashboard.stripe.com/customers/{{ $customer['id'] }}">{{ $customer['id'] }}</a></td>
         </tr>
     @endforeach
     </table>
