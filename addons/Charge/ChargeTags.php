@@ -20,13 +20,13 @@ class ChargeTags extends Tags
         $params['description'] = $this->get('description');
         $params['currency'] = $this->get('currency');
 
-        $html = '<input type="hidden" name="_charge_params" value="'. Crypt::encrypt($params) .'" />';
+        $html = '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
 
         return $html;
     }
 
     /**
-     * The {{ charge:example }} tag
+     * The {{ charge:form }} tag
      *
      * @return string|array
      */
@@ -48,7 +48,7 @@ class ChargeTags extends Tags
         }
 
         // need to encrypt the amount & description so they can't be modified
-        $html .= '<input type="hidden" name="_charge_params" value="'. Crypt::encrypt($params) .'" />';
+        $html .= '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
 
         $html .= $this->parse($data);
 

@@ -15,7 +15,8 @@ class ChargeListener extends Listener
      * @var array
      */
     public $events = [
-        'Form.submission.creating' => 'charge',
+        'Form.submission.creating' => 'chargeForm',
+        'content.saved' => 'chargeEntry',
         'user.registering' => 'register',
         'Charge.cancel' =>  'cancel',
         'Charge.resubscribe' => 'resubscribe',
@@ -32,26 +33,41 @@ class ChargeListener extends Listener
     }
 
     /**
+     * @param \Statamic\Data\Entries\Entry $entry
+     *
+     */
+    public function chargeEntry($entry)
+    {
+        // only do something if we're in the right collection
+        if ($entry->collectionName() === $this->getConfig('charge_collection'))
+        {
+            try
+            {
+                // get paid
+                $this->charge->charge($this->getDetails($entry->data()));
+
+            } catch (\Exception $e)
+            {
+                \Log::error($e->getMessage());
+                // @todo how return an error?
+            }
+        }
+    }
+
+    /**
      * @param \Statamic\Forms\Submission $submission
      *
      * @return \Statamic\Forms\Submission|array
      */
-    public function charge($submission)
+    public function chargeForm($submission)
     {
         // only do something if we're on the right formset
-        if ($submission->formset()->name() === $this->getConfig('formset'))
+        if ($submission->formset()->name() === $this->getConfig('charge_formset'))
         {
             try
             {
-                // merge the encrypted params (amount, description) with the form data
-                $details = array_merge($this->charge->decryptParams(), $submission->data());
-
-                // add the Stripe token from the request
-                $details['stripeToken'] = request('stripeToken');
-                $details['plan'] = request('plan');
-
                 // get paid
-                $charge = $this->charge->charge($details);
+                $charge = $this->charge->charge($this->getDetails($submission->data()));
 
                 // add the charge id to the submission
                 $submission->set('customer_id', $charge['customer']['id']);
@@ -129,6 +145,20 @@ class ChargeListener extends Listener
         $this->charge->resubscribe($this->getId());
     }
 
+
+    /**
+     * Merge the encrypted params (amount, description) with the data & request
+     *
+     * @param $data array
+     * @return array
+     */
+    private function getDetails($data)
+    {
+        return array_merge(
+            $this->charge->decryptParams(),
+            $data,
+            request()->only('stripeEmail', 'stripeToken', 'plan'));
+    }
 
     /**
      * Grab the id from the URL

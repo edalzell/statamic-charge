@@ -31,14 +31,4 @@ class ChargeServiceProvider extends ServiceProvider
 
         view()->share('charge', $addon);
     }
-
-    /**
-     * Register the application services.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        //
-    }
 }

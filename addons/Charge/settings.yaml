@@ -1,0 +1,14 @@
+fields:
+  charge_formset:
+    type: suggest
+    mode: form
+    display: Form
+    max_items: 1
+  charge_collection:
+    type: suggest
+    mode: collections
+    display: Collection
+    max_items: 1
+  currency:
+    type: text
+    validate: required

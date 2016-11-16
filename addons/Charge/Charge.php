@@ -10,12 +10,16 @@ use Statamic\API\URL;
 use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
-use Statamic\Extend\Addon;
+use Statamic\Extend\Extensible;
 use Stripe\Charge as StripeCharge;
 
-class Charge extends Addon
+class Charge
 {
-    public function init()
+    use Extensible;
+
+    const PARAM_KEY = "_charge_params";
+
+    public function __construct()
 	{
 		Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 	}
@@ -46,7 +50,6 @@ class Charge extends Addon
         {
             $result['charge'] = $this->oneTimeCharge($details);
         }
-
 
         return $result;
     }
@@ -146,7 +149,7 @@ class Charge extends Addon
 
     public function decryptParams()
     {
-        return request()->has('_charge_params') ? Crypt::decrypt(request('_charge_params')) : [];
+        return request()->has(Charge::PARAM_KEY) ? Crypt::decrypt(request(Charge::PARAM_KEY)) : [];
     }
 
 
