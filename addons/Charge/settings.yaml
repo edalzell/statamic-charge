@@ -9,6 +9,10 @@ fields:
     mode: collections
     display: Collection
     max_items: 1
+  offer_memberships:
+   type: toggle
+   display: Offer Paid Memberships?
+   default: false
   currency:
     type: text
     validate: required

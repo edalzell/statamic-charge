@@ -43,12 +43,10 @@ class ChargeController extends Controller
     {
         try
         {
-            // the amount, description and redirect have been encrypted from the tag
-            $params = $this->charge->decryptParams();
             $data = request()->except(['_token', '_params']);
 
             // process the payment
-            $charge = $this->charge->charge(array_merge($params, $data));
+            $charge = $this->charge->charge($this->charge->getDetails($data));
 
             $this->flash->put('success', true);
             $this->flash->put('details', $charge);

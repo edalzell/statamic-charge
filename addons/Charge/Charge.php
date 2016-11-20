@@ -224,6 +224,21 @@ class Charge
     }
 
     /**
+     * Merge the encrypted params (amount, description) with the data & request
+     *
+     * @param $data array
+     * @return array
+     */
+    public function getDetails($data)
+    {
+        return array_merge(
+            $this->decryptParams(),
+            $data,
+            request()->only('stripeEmail', 'stripeToken', 'plan'));
+    }
+
+
+    /**
      * Return the proper action link, based on if the subscription is set to auto-renew
      *
      * @param array $customer

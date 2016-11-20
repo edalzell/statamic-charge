@@ -2,7 +2,6 @@
 
 namespace Statamic\Addons\Charge;
 
-use Log;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Statamic\CP\Navigation\NavItem;
@@ -46,7 +45,8 @@ class ChargeListener extends Listener
                 // get paid
                 $this->charge->charge($this->getDetails($entry->data()));
 
-            } catch (\Exception $e)
+            }
+            catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
                 // @todo how return an error?
@@ -67,11 +67,12 @@ class ChargeListener extends Listener
             try
             {
                 // get paid
-                $charge = $this->charge->charge($this->getDetails($submission->data()));
+                $charge = $this->charge->charge($this->charge->getDetails($submission->data()));
 
                 // add the charge id to the submission
                 $submission->set('customer_id', $charge['customer']['id']);
-            } catch (\Exception $e)
+            }
+            catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
                 return array('errors' => array($e->getMessage()));
@@ -89,28 +90,21 @@ class ChargeListener extends Listener
     public function register($user)
     {
         // only do something we actually offer memberhips
-        if (!$this->getConfig('offer_memberships', false))
+        if ($this->getConfig('offer_memberships', false))
         {
-            return $user;
+            try
+            {
+                // https://github.com/statamic/v2-hub/issues/1111
+                $charge = $this->charge->charge($this->charge->getDetails($user->toArray()));
+
+                // Add the customer_id
+                $this->charge->updateUser($user, $charge['customer']['id']);
+            } catch (\Exception $e)
+            {
+                \Log::error($e->getMessage());
+                return array('errors' => array($e->getMessage()));
+            }
         }
-
-        try
-        {
-            $details = array_merge($this->charge->decryptParams(), request()->all());
-            $details['stripeEmail'] = $user->email();
-
-            $charge = $this->charge->charge($details);
-
-            // Add the customer_id
-            $this->charge->updateUser($user, $charge['customer']['id']);
-        }
-        catch (\Exception $e)
-        {
-            Log::error($e->getMessage());
-            $errors = array('errors'=>array($e->getMessage()));
-            return $errors;
-        }
-
         return $user;
     }
 
@@ -143,21 +137,6 @@ class ChargeListener extends Listener
     public function resubscribe()
     {
         $this->charge->resubscribe($this->getId());
-    }
-
-
-    /**
-     * Merge the encrypted params (amount, description) with the data & request
-     *
-     * @param $data array
-     * @return array
-     */
-    private function getDetails($data)
-    {
-        return array_merge(
-            $this->charge->decryptParams(),
-            $data,
-            request()->only('stripeEmail', 'stripeToken', 'plan'));
     }
 
     /**
