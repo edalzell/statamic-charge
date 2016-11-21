@@ -1,3 +1,3 @@
-formset: charge
+charge_formset: charge
 offer_memberships: true
 currency: cad
