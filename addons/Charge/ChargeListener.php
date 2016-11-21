@@ -95,7 +95,9 @@ class ChargeListener extends Listener
             try
             {
                 // https://github.com/statamic/v2-hub/issues/1111
-                $charge = $this->charge->charge($this->charge->getDetails($user->toArray()));
+                $user_array = [ 'email' => $user->get('email'),
+                                'username' => $user->username() ];
+                $charge = $this->charge->charge($this->charge->getDetails($user_array));
 
                 // Add the customer_id
                 $this->charge->updateUser($user, $charge['customer']['id']);

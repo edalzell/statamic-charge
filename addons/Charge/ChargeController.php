@@ -2,7 +2,9 @@
 
 namespace Statamic\Addons\Charge;
 
+use Statamic\API\Str;
 use Statamic\Extend\Controller;
+use Symfony\Component\Intl\Intl;
 
 class ChargeController extends Controller
 {
@@ -31,7 +33,12 @@ class ChargeController extends Controller
 
     public function charges()
     {
-        return $this->view('lists.charges', ['charges' => $this->charge->getCharges()]);
+        // get currency symbol
+        $currency = Str::upper($this->getConfig('currency', 'usd'));
+        $currency_symbol  = Intl::getCurrencyBundle()->getCurrencySymbol($currency);
+        $charges = $this->charge->getCharges();
+
+        return $this->view('lists.charges', compact('currency_symbol', 'charges'));
     }
 
     public function subscriptions()

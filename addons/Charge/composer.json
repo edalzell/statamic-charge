@@ -1,6 +1,7 @@
 {
     "name": "erin-dalzell/charge",
     "require": {
-        "stripe/stripe-php" : "3.*"
+        "stripe/stripe-php" : "3.*",
+        "symfony/intl" : "3.*"
     }
 }
