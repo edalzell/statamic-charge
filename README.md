@@ -1,18 +1,20 @@
 ## INSTALLATION ##
 
 1. Copy Charge folder to `site/addons`
-2. Create (or copy) the settings file to `site/settings/addons/charge.yaml`
-3. Run `php please addons:refresh`
+2. Run `php please addons:refresh`
 
 ## SETTINGS ##
 
+* Go to `cp/addons/charge/settings` and fill in the required fields. `Collection` is for if you are using Workshop.
 * in `charge.yaml`
-    * `formset` - which formset you'll be using for the Form submission
+    * `charge_formset` - which formset you'll be using for the Form submission
+    * `charge_collection` - which collection you'll be using for the Workshop submission
     * `currency` - default currency for payments
     * `offer_memberships` - if you offer membership (on user registration), set this to `true`
 * in your `.env` file, which MUST NOT be checked in:
-	* `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
-	* `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
+    * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
+    * `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
+    * `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
 
 ## USAGE ##
 
@@ -20,10 +22,12 @@
 
 A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
 
-There are three ways to use it
+There are four ways to use it:
+
 1. Statamic's `Form` tag
 2. Charge's `{{ charge:form }}`- for when you want to use Stripe Checkout, etc
 3. User registration form (for paid memberships, both subscriptions and one-time)
+4. Workshop entry creation
 
 Charge Form
 
@@ -255,5 +259,7 @@ For a membership upon user registration:
     {{ charge:js }}
 {{ /section:chargeJS }}
 ```
+
+For Workshop entry creation, use the same fields/tags as above.
 
 For a one-time, take out the `plan` part and use `{{ charge:data }}` for the amount, etc
