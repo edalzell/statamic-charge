@@ -4,11 +4,10 @@ fields:
     mode: form
     display: Form
     max_items: 1
-  charge_collection:
+  charge_collections:
     type: suggest
     mode: collections
     display: Collection
-    max_items: 1
   offer_memberships:
    type: toggle
    display: Offer Paid Memberships?

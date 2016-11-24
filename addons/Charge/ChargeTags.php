@@ -112,6 +112,15 @@ class ChargeTags extends Tags
         return $js;
     }
 
+    /**
+     * The {{ charge:process_payment }} tag
+     *
+     * @return string
+     */
+    public function processPayment()
+    {
+        return '<input type="hidden" name="process_payment" value="true" />';
+    }
 
     /**
      * Does this form have errors?

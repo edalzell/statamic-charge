@@ -38,12 +38,14 @@ class ChargeListener extends Listener
     public function chargeEntry($entry)
     {
         // only do something if we're in the right collection
-        if ($entry->collectionName() === $this->getConfig('charge_collection'))
+        // @todo hack in here due to Workshop not differentiating between editing and creating
+        if (in_array($entry->collectionName(), $this->getConfig('charge_collections')) &&
+            request()->has('process_payment'))
         {
             try
             {
                 // get paid
-                $this->charge->charge($this->getDetails($entry->data()));
+                $this->charge->charge($this->charge->getDetails($entry->data()));
 
             }
             catch (\Exception $e)
