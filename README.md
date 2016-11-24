@@ -5,10 +5,10 @@
 
 ## SETTINGS ##
 
-* Go to `cp/addons/charge/settings` and fill in the required fields. `Collection` is for if you are using Workshop.
+* Go to `cp/addons/charge/settings` and fill in the required fields. `Collections` is for if you are using Workshop.
 * in `charge.yaml`
     * `charge_formset` - which formset you'll be using for the Form submission
-    * `charge_collection` - which collection you'll be using for the Workshop submission
+    * `charge_collections` - which collection(s) you'll be using for the Workshop submission
     * `currency` - default currency for payments
     * `offer_memberships` - if you offer membership (on user registration), set this to `true`
 * in your `.env` file, which MUST NOT be checked in:
@@ -260,6 +260,6 @@ For a membership upon user registration:
 {{ /section:chargeJS }}
 ```
 
-For Workshop entry creation, use the same fields/tags as above.
+For Workshop entry creation, use the same fields/tags as above but add `{{ charge:process_payment }}` to the template used to **CREATE** entries. Do **NOT** put it on the template used to edit entries.
 
 For a one-time, take out the `plan` part and use `{{ charge:data }}` for the amount, etc
