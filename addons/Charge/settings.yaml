@@ -7,7 +7,7 @@ fields:
   charge_collections:
     type: suggest
     mode: collections
-    display: Collection
+    display: Collections
   offer_memberships:
    type: toggle
    display: Offer Paid Memberships?
