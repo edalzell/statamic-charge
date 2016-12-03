@@ -39,8 +39,8 @@ class ChargeListener extends Listener
     {
         // only do something if we're in the right collection
         // @todo hack in here due to Workshop not differentiating between editing and creating
-        if (in_array($entry->collectionName(), $this->getConfig('charge_collections')) &&
-            request()->has('process_payment'))
+        if (request()->has('process_payment') &&
+            in_array($entry->collectionName(), $this->getConfig('charge_collections')))
         {
             try
             {
