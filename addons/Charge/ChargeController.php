@@ -50,15 +50,15 @@ class ChargeController extends Controller
     {
         try
         {
-            $data = request()->except(['_token', '_params']);
+            $data = $this->charge->getDetails(request()->except(['_token', '_params']));
 
             // process the payment
-            $charge = $this->charge->charge($this->charge->getDetails($data));
+            $charge = $this->charge->charge($data);
 
             $this->flash->put('success', true);
             $this->flash->put('details', $charge);
 
-            $redirect = array_get($params, 'redirect');
+            $redirect = array_get($data, 'redirect');
 
             return ($redirect) ? redirect($redirect) : back();
         }
