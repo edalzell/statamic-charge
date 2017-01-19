@@ -6,9 +6,8 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function(event) {
 
         // Disable the submit button to prevent repeated clicks:
-        if (form.querySelector('form[data-charge-button]')) {
-            form.querySelector('form[data-charge-button]').disabled = true;
-        }
+        form.querySelector('[data-charge-button]').disabled = true;
+
         // Request a token from Stripe:
         Stripe.card.createToken(form, stripeResponseHandler);
 
@@ -23,13 +22,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (response.error) { // Problem!
 
             // Show the errors on the form:
-            if (form.querySelector('form[data-charge-errors]')) {
-                form.querySelector('form[data-charge-errors]').textContent = response.error.message;
-            }
-
-            if (form.querySelector('form[data-charge-button]')) {
-                form.querySelector('form[data-charge-button]').disabled = false; // Re-enable submission
-            }
+            form.querySelector('[data-charge-errors]').textContent = response.error.message;
+            form.querySelector('[data-charge-button]').disabled = false; // Re-enable submission
 
         } else { // Token was created!
 
@@ -50,24 +44,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 /*
- There a few minor differences what happens! As example `querySelector` only returns one element, if it is possible to have multiple of the forms or button you need to use `querySelectorAll` and loop over the `NodeList`.
+There a few minor differences what happens! As example `querySelector` only returns one element, if it is possible to have multiple of the forms or button you need to use `querySelectorAll` and loop over the `NodeList`.
 
- Example with a loop with a nice `each` helper method
- *//**
+Example with a loop with a nice `each` helper method
+*//**
  * @param {Array|Object} array
  * @param {Function} callback
  * @param {Object} [scope]
  */
-/*var each = function (array, callback, scope) {
+var each = function (array, callback, scope) {
         for (var key in array) {
             if (array.hasOwnProperty(key)) {
                 callback.call(scope, array[key], key);
             }
         }
-    };*/
+    };
 /*Then it would look something like
- */
+*/
 /*var forms = document.querySelectorAll('form[data-charge-form]');
- each(forms, function (form) {
- form.addEventListener('submit', stripeResponseHandler);
- });*/
+each(forms, function (form) {
+    form.addEventListener('submit', stripeResponseHandler);
+});*/

@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Statamic\API\Str;
+use Statamic\API\User;
 use Statamic\Extend\Controller;
 use Symfony\Component\Intl\Intl;
 
@@ -50,15 +51,15 @@ class ChargeController extends Controller
     {
         try
         {
-            $data = $this->charge->getDetails(request()->except(['_token', '_params']));
+            $data = request()->except(['_token', '_params']);
 
             // process the payment
-            $charge = $this->charge->charge($data);
+            $charge = $this->charge->charge($this->charge->getDetails($data));
 
             $this->flash->put('success', true);
             $this->flash->put('details', $charge);
 
-            $redirect = array_get($data, 'redirect');
+            $redirect = array_get($params, 'redirect');
 
             return ($redirect) ? redirect($redirect) : back();
         }
@@ -66,6 +67,23 @@ class ChargeController extends Controller
         {
             return back()->withInput()->withErrors($e->getMessage(),'charge');
         }
+    }
+
+    public function postWebhook()
+    {
+        $event = request()->json()->all();
+        if ($event['type'] == 'invoice.payment_succeeded')
+        {
+            // get the new end date
+
+            // store it
+
+        }
+    }
+
+    private function whereUser($id)
+    {
+        //User::whereEmail()
     }
 
     public function refund($id = null)

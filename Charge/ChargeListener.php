@@ -102,7 +102,7 @@ class ChargeListener extends Listener
                 $charge = $this->charge->charge($this->charge->getDetails($user_array));
 
                 // Add the customer_id
-                $this->charge->updateUser($user, $charge['customer']['id']);
+                $this->charge->updateUser($user, $charge);
             } catch (\Exception $e)
             {
                 \Log::error($e->getMessage());

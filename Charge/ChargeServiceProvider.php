@@ -30,5 +30,11 @@ class ChargeServiceProvider extends ServiceProvider
         ];
 
         view()->share('charge', $addon);
+
+        // gotta add myself to the CSRF exclude list so Stripe can send the webhooks
+        $excludes = Config::get('system.csrf_exclude', []);
+
+        $excludes[] = $this->actionUrl('webhook');
+        Config::set('system.csrf_exclude', $excludes);
     }
 }

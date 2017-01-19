@@ -124,26 +124,42 @@ class Charge
         /** @var \Stripe\Customer $customer */
         $customer = null;
 
+        // First check for `stripeEmail` - means Stripes Checkout was used
+        // Then look in the config, else use `email`
+        $email = $details['stripeEmail'] ?? $details['email'];
+        $token = $details['stripeToken'];
+
         // first see if the customer exists already
-        if ($yaml = $this->storage->getYAML($details['stripeEmail']))
+        if ($yaml = $this->storage->getYAML($email))
         {
             $customer = Customer::retrieve($yaml['customer_id']);
 
             // update the payment details
-            $customer->source = $details['stripeToken'];
+            $customer->source = $token;
             $customer->save();
         }
         else
         {
             $customer = Customer::create([
-                "email" => $details['stripeEmail'],
-                "source" => $details['stripeToken']
+                "email" => $email,
+                "source" => $token,
             ]);
 
-            // store it for later
-            $this->storage->putYAML($details['stripeEmail'], ['customer_id' => $customer->id]);
         }
 
+        if (isset($details['product']))
+        {
+            // get the list of products
+            $products = $yaml['products'] ?? [];
+
+            $products[] = $details['product'];
+
+            // store it for later
+            $this->storage->putYAML($email, [
+                'customer_id' => $customer->id,
+                'products' => array_unique($products)
+            ]);
+        }
         return $customer->__toArray(true);
      }
 
@@ -157,16 +173,19 @@ class Charge
      * Add the customer id
      *
      * @param \Statamic\Data\Users\User $user
-     * @param string $customer_id
+     * @param array $customer
      *
      */
-    public function updateUser($user, $customer_id)
+    public function updateUser($user, $charge)
     {
         // add the customer_id to the user
-        $user->set('customer_id', $customer_id);
+        $user->set('customer_id', $charge['customer']['id']);
 
         // add the creation date
         $user->set('created_on', time());
+
+        $user->set('subscription_start', $charge['subscription']['current_period_start']);
+        $user->set('subscription_end', $charge['subscription']['current_period_end']);
     }
 
     /**
@@ -176,7 +195,7 @@ class Charge
      */
     private function getSubscription($id)
     {
-        return $id ? Subscription::retrieve($id)->__toArray(true) : null;
+        return $id ? Subscription::retrieve($id) : null;
     }
 
     /**
