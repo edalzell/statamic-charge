@@ -2,6 +2,7 @@
 
 1. Copy Charge folder to `site/addons`
 2. Run `php please addons:refresh`
+3. Register the webhook w/ Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
 
 ## SETTINGS ##
 
@@ -10,7 +11,6 @@
     * `charge_formset` - which formset you'll be using for the Form submission
     * `charge_collections` - which collection(s) you'll be using for the Workshop submission
     * `currency` - default currency for payments
-    * `offer_memberships` - if you offer membership (on user registration), set this to `true`
 * in your `.env` file, which MUST NOT be checked in:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
     * `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
@@ -34,6 +34,7 @@ Charge Form
 * for a one-time charge pass in the `amount`, `description`, and optionally the `currency` as parameters on the tag
 * for a subscription, have a `plan` field in your form with the Stripe Plan
 * if you want to redirect the customer after the charge, use a `redirect` parameter
+* if you're adding a charge to a user, include a `user_id` field that contains the current user's `id`
 * `{{ success }}` and `{{ details }}` are available to you after a successful charge.
 
 Statamic Form
@@ -43,6 +44,7 @@ Statamic Form
 * for a one-time charge, somewhere in your form you need to set the `amount`, `description`, and optionally `currency` via `{{ charge:data }}`
 * for a subscription, include a `plan` field along with the above email field. Currency, amount nor description are needed for subscriptions
 * the `customer_id` is available in the `submission` data
+* if you're adding a charge to a user, include a `user_id` field that contains the current user's `id`
 * please note the `data-*` attributes on the form items. Those are required.
 
 Example - Charge Form - Stripe Checkout:
@@ -57,7 +59,7 @@ Example - Charge Form - Stripe Checkout:
 
     <script
             src="https://checkout.stripe.com/checkout.js" class="stripe-button"
-            data-key="{{ env: STRIPE_PUBLIC_KEY }}"
+            data-key="{{ env:STRIPE_PUBLIC_KEY }}"
             data-amount="{{ amount }}"
             data-name="{{ company }}"
             data-description="{{ description }}"

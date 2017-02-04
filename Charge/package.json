@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-zip": "^3.2.0",
+    "laravel-elixir": "^6.0.0-15",
+    "laravel-elixir-vue": "^0.1.8",
+    "laravel-elixir-webpack-official": "^1.0.10",
+    "vue": "^1.0.26",
+    "vue-truncate-filter": "^1.1.5"
+  }
+}

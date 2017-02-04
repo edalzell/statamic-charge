@@ -8,10 +8,6 @@ fields:
     type: suggest
     mode: collections
     display: Collections
-  offer_memberships:
-   type: toggle
-   display: Offer Paid Memberships?
-   default: false
   currency:
     type: text
     validate: required
