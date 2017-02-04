@@ -59,7 +59,7 @@ class ChargeController extends Controller
             $this->flash->put('success', true);
             $this->flash->put('details', $charge);
 
-            $redirect = array_get($params, 'redirect');
+            $redirect = array_get($data, 'redirect');
 
             return ($redirect) ? redirect($redirect) : back();
         }
@@ -74,16 +74,24 @@ class ChargeController extends Controller
         $event = request()->json()->all();
         if ($event['type'] == 'invoice.payment_succeeded')
         {
-            // get the new end date
-
-            // store it
-
+            // find the right user (w/ the matching Stripe Customer ID
+            /** @var \Statamic\Data\Users\User $user */
+            if ($user = $this->whereUser($event['data']['object']['customer']))
+            {
+                // store it
+                $user->set('subscription_end', $event['data']['object']['period_end']);
+                $user->save();
+            }
         }
+
+        return response();
     }
 
-    private function whereUser($id)
+    private function whereUser($customer_id)
     {
-        //User::whereEmail()
+        return User::all()->first(function ($id, $user) use ($customer_id) {
+            return $user->get('customer_id') === $customer_id;
+        });
     }
 
     public function refund($id = null)

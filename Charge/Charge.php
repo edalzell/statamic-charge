@@ -7,9 +7,11 @@ use Stripe\Refund;
 use Carbon\Carbon;
 use Stripe\Customer;
 use Statamic\API\URL;
+use Statamic\API\User;
 use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
+use Statamic\Data\Users\User as UserContract;
 use Statamic\Extend\Extensible;
 use Stripe\Charge as StripeCharge;
 
@@ -59,7 +61,7 @@ class Charge
         /** @var \Stripe\Charge $charge */
         return StripeCharge::create(array(
             'customer' => $details['customer'],
-            'amount'   =>$details['amount'],
+            'amount'   =>$details['amount'] ?: round($details['amount_dollar'] * 100),
             'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
             'receipt_email' => $details['stripeEmail'],
             'description' => $details['description']
@@ -163,6 +165,9 @@ class Charge
         return $customer->__toArray(true);
      }
 
+    /**
+     * @return array|string
+     */
     public function decryptParams()
     {
         return request()->has(Charge::PARAM_KEY) ? Crypt::decrypt(request(Charge::PARAM_KEY)) : [];
@@ -170,13 +175,13 @@ class Charge
 
 
     /**
-     * Add the customer id
+     * Add the subscription data
      *
      * @param \Statamic\Data\Users\User $user
-     * @param array $customer
+     * @param array $charge
      *
      */
-    public function updateUser($user, $charge)
+    public function updateUser($user, $charge, $save = false)
     {
         // add the customer_id to the user
         $user->set('customer_id', $charge['customer']['id']);
@@ -184,14 +189,20 @@ class Charge
         // add the creation date
         $user->set('created_on', time());
 
+        $user->set('plan', $charge['subscription']['plan']['id']);
         $user->set('subscription_start', $charge['subscription']['current_period_start']);
         $user->set('subscription_end', $charge['subscription']['current_period_end']);
+
+        if ($save)
+        {
+            $user->save();
+        }
     }
 
     /**
      * @param $id string customer_id
      *
-     * @return \Stripe\Subscription
+     * @return \Stripe\Subscription|null
      */
     private function getSubscription($id)
     {
@@ -253,14 +264,14 @@ class Charge
         return array_merge(
             $this->decryptParams(),
             $data,
-            request()->only('stripeEmail', 'stripeToken', 'plan'));
+            request()->only(['stripeEmail', 'stripeToken', 'plan', 'amount', 'amount_dollar']));
     }
 
 
     /**
      * Return the proper action link, based on if the subscription is set to auto-renew
      *
-     * @param array $customer
+     * @param array $subscription
      *
      * @return string
      */
@@ -289,5 +300,4 @@ class Charge
 
         return $dt;
     }
-
 }

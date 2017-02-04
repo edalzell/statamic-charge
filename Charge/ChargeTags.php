@@ -14,15 +14,7 @@ class ChargeTags extends Tags
      */
     public function data()
     {
-        $params = [];
-
-        $params['amount'] = $this->get('amount');
-        $params['description'] = $this->get('description');
-        $params['currency'] = $this->get('currency');
-
-        $html = '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
-
-        return $html;
+        return '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($this->parameters) .'" />';
     }
 
     /**
@@ -74,11 +66,7 @@ class ChargeTags extends Tags
      */
     public function details()
     {
-        if ($this->success()) {
-            return $this->flash->get('details');
-        }
-
-        return [];
+        return $this->success() ? $this->flash->get('details') : [];
     }
 
     public function errors()

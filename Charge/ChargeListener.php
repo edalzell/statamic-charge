@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge;
 
+use Statamic\API\User;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Statamic\CP\Navigation\NavItem;
@@ -46,7 +47,6 @@ class ChargeListener extends Listener
             {
                 // get paid
                 $this->charge->charge($this->charge->getDetails($entry->data()));
-
             }
             catch (\Exception $e)
             {
@@ -71,6 +71,14 @@ class ChargeListener extends Listener
                 // get paid
                 $charge = $this->charge->charge($this->charge->getDetails($submission->data()));
 
+                // if there's a user here, add the relevant details
+                if (request()->has('user_id'))
+                {
+                    $user = User::find(request('id'));
+
+                    $this->charge->updateUser($user, $charge);
+                }
+
                 // add the charge id to the submission
                 $submission->set('customer_id', $charge['customer']['id']);
             }
@@ -91,17 +99,14 @@ class ChargeListener extends Listener
      */
     public function register($user)
     {
-        // only do something we actually offer memberhips
-        if ($this->getConfig('offer_memberships', false))
+        // only do something if there's an amount or a plan
+        if (request()->has('amount') || request()->has('plan'))
         {
             try
             {
-                // https://github.com/statamic/v2-hub/issues/1111
-                $user_array = [ 'email' => $user->get('email'),
-                                'username' => $user->username() ];
-                $charge = $this->charge->charge($this->charge->getDetails($user_array));
+                $charge = $this->charge->charge($this->charge->getDetails([ 'email' => $user->email() ]));
 
-                // Add the customer_id
+                // Add the relevant Stripe details
                 $this->charge->updateUser($user, $charge);
             } catch (\Exception $e)
             {
