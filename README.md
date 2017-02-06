@@ -29,22 +29,22 @@ There are four ways to use it:
 3. User registration form (for paid memberships, both subscriptions and one-time)
 4. Workshop entry creation
 
+*NOTE*: if the user is logged in, the subscription details will be stored in the user data
+
 Charge Form
 
-* for a one-time charge pass in the `amount`, `description`, and optionally the `currency` as parameters on the tag
+* for a one-time charge pass in the `amount` (in cents), `description`, and optionally the `currency` as parameters on the tag
 * for a subscription, have a `plan` field in your form with the Stripe Plan
 * if you want to redirect the customer after the charge, use a `redirect` parameter
-* if you're adding a charge to a user, include a `user_id` field that contains the current user's `id`
 * `{{ success }}` and `{{ details }}` are available to you after a successful charge.
 
 Statamic Form
 
 * the following fields *must* be in your form:
-    * `stripeEmail` - email of customer
-* for a one-time charge, somewhere in your form you need to set the `amount`, `description`, and optionally `currency` via `{{ charge:data }}`
+    * `stripeEmail` or `email` - email of customer
+* for a one-time charge, somewhere in your form you need to set the `description`, `amount` (in cents) or `amount_dollars` (like 23.45), and optionally `currency` via `{{ charge:data }}` or a form field
 * for a subscription, include a `plan` field along with the above email field. Currency, amount nor description are needed for subscriptions
 * the `customer_id` is available in the `submission` data
-* if you're adding a charge to a user, include a `user_id` field that contains the current user's `id`
 * please note the `data-*` attributes on the form items. Those are required.
 
 Example - Charge Form - Stripe Checkout:
@@ -75,9 +75,8 @@ Example - Statamic Form:
 {{ form:create in="charge" attr="class:form|data-charge-form" redirect="/thanks" }}
 	<div class="form-item">
 		<label>Email</label>
-		<input type="email" name="stripeEmail" value="{{ old:stripeEmail }}" />
+		<input type="email" name="email" value="{{ old:email }}" />
 	</div>
-
 
 	<fieldset class="payment">
 		<div class="form-item">
@@ -129,15 +128,15 @@ Example - Statamic Form:
 
 For a subscription, like above, but no `{{ charge:data }}` needed, instead:
 ```
-                    <div class="form-item">
-                        <label for="plan">Membership Type</label>
-                        <select name="plan" id="plan" class="big" >
-                            <option>Please Select</option>
-                            <option value="associate">Associate</option>
-                            <option value="clinical">Clinical</option>
-                            <option value="student">Student</option>
-                        </select>
-                    </div>
+<div class="form-item">
+    <label for="plan">Membership Type</label>
+    <select name="plan" id="plan" class="big" >
+        <option>Please Select</option>
+        <option value="associate">Associate</option>
+        <option value="clinical">Clinical</option>
+        <option value="student">Student</option>
+    </select>
+</div>
 ```
 
 For a membership upon user registration:
@@ -163,8 +162,8 @@ For a membership upon user registration:
         <div class="row row-inner">
             <div class="col">
                 <div class="form-item">
-                    <label>Username</label>
-                    <input type="text" name="username" value="{{ old:username }}" />
+                    <label>Email</label>
+                    <input type="text" name="email" value="{{ old:email }}" />
                 </div>
             </div>
 
@@ -181,11 +180,6 @@ For a membership upon user registration:
                     <input type="text" name="last_name" value="{{ old:last_name }}" />
                 </div>
             </div>
-        </div>
-
-        <div class="form-item">
-            <label>Email</label>
-            <input type="email" name="email" value="{{ old:email }}" />
         </div>
 
         <div class="form-item">

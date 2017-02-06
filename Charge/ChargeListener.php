@@ -46,7 +46,13 @@ class ChargeListener extends Listener
             try
             {
                 // get paid
-                $this->charge->charge($this->charge->getDetails($entry->data()));
+                $charge = $this->charge->charge($this->charge->getDetails($entry->data()));
+
+                // if there's a user logged in, store the details
+                if ($user = User::getCurrent())
+                {
+                    $this->charge->updateUser($user, $charge);
+                }
             }
             catch (\Exception $e)
             {
@@ -71,11 +77,9 @@ class ChargeListener extends Listener
                 // get paid
                 $charge = $this->charge->charge($this->charge->getDetails($submission->data()));
 
-                // if there's a user here, add the relevant details
-                if (request()->has('user_id'))
+                // if there's a user logged in, store the details
+                if ($user = User::getCurrent())
                 {
-                    $user = User::find(request('id'));
-
                     $this->charge->updateUser($user, $charge);
                 }
 

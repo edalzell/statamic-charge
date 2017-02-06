@@ -7,11 +7,9 @@ use Stripe\Refund;
 use Carbon\Carbon;
 use Stripe\Customer;
 use Statamic\API\URL;
-use Statamic\API\User;
 use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
-use Statamic\Data\Users\User as UserContract;
 use Statamic\Extend\Extensible;
 use Stripe\Charge as StripeCharge;
 
@@ -63,7 +61,7 @@ class Charge
             'customer' => $details['customer'],
             'amount'   =>$details['amount'] ?: round($details['amount_dollar'] * 100),
             'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
-            'receipt_email' => $details['stripeEmail'],
+            'receipt_email' => $details['email'],
             'description' => $details['description']
         ))->__toArray(true);
     }
@@ -126,9 +124,7 @@ class Charge
         /** @var \Stripe\Customer $customer */
         $customer = null;
 
-        // First check for `stripeEmail` - means Stripes Checkout was used
-        // Then look in the config, else use `email`
-        $email = $details['stripeEmail'] ?? $details['email'];
+        $email = $details['email'];
         $token = $details['stripeToken'];
 
         // first see if the customer exists already
@@ -147,6 +143,7 @@ class Charge
                 "source" => $token,
             ]);
 
+            $this->storage->putYAML($email, ['customer_id' => $customer->id]);
         }
 
         if (isset($details['product']))
@@ -259,12 +256,18 @@ class Charge
      * @param $data array
      * @return array
      */
-    public function getDetails($data)
+    public function getDetails($data = [])
     {
-        return array_merge(
-            $this->decryptParams(),
+        // gotta merge the email stuff so there's just one
+        $data = array_merge(
             $data,
-            request()->only(['stripeEmail', 'stripeToken', 'plan', 'amount', 'amount_dollar']));
+            request()->only(['stripeEmail', 'stripeToken', 'plan', 'amount', 'amount_dollar']),
+            $this->decryptParams());
+
+        // if `stripeEmail` is there, use that, otherwise, use `email`
+        $data['email'] = $data['stripeEmail'] ?: $data['email'];
+
+        return $data;
     }
 
 

@@ -51,30 +51,42 @@ class ChargeController extends Controller
     {
         try
         {
-            $data = request()->except(['_token', '_params']);
+            //$data = request()->except(['_token', '_params']);
 
             // process the payment
-            $charge = $this->charge->charge($this->charge->getDetails($data));
+            $charge = $this->charge->charge($this->charge->getDetails());
 
+            // if there's a user logged in, store the details
+            if ($user = User::getCurrent())
+            {
+                $this->charge->updateUser($user, $charge);
+            }
+
+            // get the results ready for display
             $this->flash->put('success', true);
             $this->flash->put('details', $charge);
 
-            $redirect = array_get($data, 'redirect');
+            $redirect = request()->get('redirect');
 
             return ($redirect) ? redirect($redirect) : back();
         }
         catch (\Stripe\Error\Base $e)
         {
-            return back()->withInput()->withErrors($e->getMessage(),'charge');
+            return back()->withInput()->withErrors($e->getMessage(), 'charge');
         }
     }
 
+    /**
+     * Deal with the Stripe events
+     *
+     * @return \Illuminate\Contracts\Routing\ResponseFactory|\Symfony\Component\HttpFoundation\Response
+     */
     public function postWebhook()
     {
         $event = request()->json()->all();
         if ($event['type'] == 'invoice.payment_succeeded')
         {
-            // find the right user (w/ the matching Stripe Customer ID
+            // find the right user (w/ the matching Stripe Customer ID)
             /** @var \Statamic\Data\Users\User $user */
             if ($user = $this->whereUser($event['data']['object']['customer']))
             {
