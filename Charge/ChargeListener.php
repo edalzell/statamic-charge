@@ -85,6 +85,8 @@ class ChargeListener extends Listener
 
                 // add the charge id to the submission
                 $submission->set('customer_id', $charge['customer']['id']);
+
+                $this->flash->put('details', $charge);
             }
             catch (\Exception $e)
             {
@@ -112,6 +114,8 @@ class ChargeListener extends Listener
 
                 // Add the relevant Stripe details
                 $this->charge->updateUser($user, $charge);
+
+                $this->flash->put('details', $charge);
             } catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
