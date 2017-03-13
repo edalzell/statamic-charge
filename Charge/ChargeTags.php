@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Statamic\API\Crypt;
+use Statamic\API\URL;
 use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
@@ -108,6 +109,11 @@ class ChargeTags extends Tags
     public function processPayment()
     {
         return '<input type="hidden" name="process_payment" value="true" />';
+    }
+
+    public function cancelSubscriptionLink()
+    {
+        return URL::assemble($this->actionUrl('cancel', false), $this->getParam('customer'));
     }
 
     /**
