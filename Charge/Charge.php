@@ -103,7 +103,7 @@ class Charge
 
 
     /**
-     * @param string $id
+     * @param string $id Stripe Customer id
      */
     public function cancel($id)
     {
@@ -111,6 +111,8 @@ class Charge
 
         // don't renew at end of period
         $subscription->cancel(['at_period_end' => true]);
+
+        // @todo set the subscription status to `canceled`
     }
 
     /**
@@ -186,9 +188,24 @@ class Charge
         // add the creation date
         $user->set('created_on', time());
 
-        $user->set('plan', $charge['subscription']['plan']['id']);
-        $user->set('subscription_start', $charge['subscription']['current_period_start']);
-        $user->set('subscription_end', $charge['subscription']['current_period_end']);
+        if (isset($charge['subscription']))
+        {
+            $user->set('plan', $charge['subscription']['plan']['id']);
+            $user->set('subscription_start', $charge['subscription']['current_period_start']);
+            $user->set('subscription_end', $charge['subscription']['current_period_end']);
+
+            if ($role = $this->getRole($user->get('plan')))
+            {
+                // get the user's roles
+                $roles = $user->get('roles', []);
+
+                // add the role id to the roles
+                $roles[] = $role;
+
+                // set the user's roles
+                $user->set('roles', $roles);
+            }
+        }
 
         if ($save)
         {
@@ -235,7 +252,10 @@ class Charge
      */
     public function getSubscriptions()
     {
-        $subscriptions = Subscription::all(['limit' => 100, 'expand' => ['data.customer']])->__toArray(true);
+        $subscriptions = Subscription::all([
+            'limit' => 100,
+            'expand' => ['data.customer']
+        ])->__toArray(true);
 
         return collect($subscriptions['data'])->map(function ($subscription) {
             return [
@@ -268,6 +288,15 @@ class Charge
         $data['email'] = $data['stripeEmail'] ?: $data['email'];
 
         return $data;
+    }
+
+    public function getRole($plan)
+    {
+        $plan_role = collect($this->getConfig('plans_and_roles', []))->first(function($ignored, $data) use ($plan) {
+            return $plan == array_get($data, 'plan');
+        });
+
+        return $plan_role ? $plan_role['role'][0] : null;
     }
 
 
