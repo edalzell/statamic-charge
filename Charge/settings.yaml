@@ -12,3 +12,34 @@ fields:
     type: text
     validate: required
     default: usd
+  roles_section:
+    type: section
+    display: Plans & Roles
+  plans_and_roles:
+    type: grid
+    display: 'When a user registers and subscribes to a plan, give them a role'
+    fields:
+      plan:
+        type: text
+        display: 'Stripe Plan'
+        validate: required
+        width: 50
+      role:
+        type: user_roles
+        display: 'Role add user to'
+        validate: required
+        width: 50
+    mode: table
+    add_row: Add Plan & Role
+  templates_section:
+    type: section
+    display: Email Setting
+  from_email:
+    type: text
+    width 33
+  canceled_email_template:
+    type: template
+    width: 33
+  payment_failed_email_template:
+    type: template
+    width: 33
