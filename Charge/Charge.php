@@ -299,6 +299,13 @@ class Charge
         return $plan_role ? $plan_role['role'][0] : null;
     }
 
+    public function getSourceDetails($customer_id)
+    {
+        return Customer::retrieve([
+            'id' => $customer_id,
+            'expand' => ['default_source']])->default_source->__toArray(true);
+    }
+
 
     /**
      * Return the proper action link, based on if the subscription is set to auto-renew

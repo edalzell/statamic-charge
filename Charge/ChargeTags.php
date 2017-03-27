@@ -8,6 +8,14 @@ use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
 {
+    /** @var  \Statamic\Addons\Charge\Charge */
+    private $charge;
+
+    public function init()
+    {
+        $this->charge = new Charge;
+    }
+
     /**
      * The {{ charge:data }} tag
      *
@@ -44,6 +52,18 @@ class ChargeTags extends Tags
         $html .= '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
 
         $html .= $this->parse($data);
+
+        $html .= '</form>';
+
+        return $html;
+    }
+
+    public function updatePaymentForm()
+    {
+        $html = $this->formOpen('update_payment');
+
+        // get the current card details
+        $html .= $this->parse($this->charge->getSourceDetails($this->getParam('customer_id')));
 
         $html .= '</form>';
 

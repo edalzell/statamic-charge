@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Log;
+use Stripe\Customer;
 use Statamic\API\Str;
 use Statamic\API\User;
 use Statamic\API\Email;
@@ -76,6 +77,37 @@ class ChargeController extends Controller
         catch (\Stripe\Error\Base $e)
         {
             return back()->withInput()->withErrors($e->getMessage(), 'charge');
+        }
+    }
+
+    public function postUpdatePayment()
+    {
+        $request = request();
+
+        if (($user = User::getCurrent()) && ($request->has('stripeToken')))
+        {
+            try
+            {
+                $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
+                $customer->source = $request->get('stripeToken'); // obtained with Checkout
+                $customer->save();
+
+                // get the results ready for display
+                $this->flash->put('success', true);
+
+                $redirect = $request->get('redirect', false);
+
+                return ($redirect) ? redirect($redirect) : back();
+            }
+            catch(\Stripe\Error\Card $e) {
+
+                // Use the variable $error to save any errors
+                // To be displayed to the customer later in the page
+                $body = $e->getJsonBody();
+                $error  = $body['error'];
+
+                return back()->withInput()->withErrors($error['message'], 'charge');
+            }
         }
     }
 
@@ -203,5 +235,4 @@ class ChargeController extends Controller
         // redirect back to main page
         return response()->redirectToRoute('lists.subscriptions');
     }
-
 }
