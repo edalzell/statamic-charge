@@ -281,7 +281,7 @@ class Charge
         // gotta merge the email stuff so there's just one
         $data = array_merge(
             $data,
-            request()->only(['stripeEmail', 'stripeToken', 'plan', 'amount', 'amount_dollar']),
+            request()->only(['stripeEmail', 'stripeToken', 'plan', 'amount', 'amount_dollar', 'email']),
             $this->decryptParams());
 
         // if `stripeEmail` is there, use that, otherwise, use `email`
