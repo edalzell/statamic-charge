@@ -11,16 +11,37 @@
     * `charge_formset` - which formset you'll be using for the Form submission
     * `charge_collections` - which collection(s) you'll be using for the Workshop submission
     * `currency` - default currency for payments
+    * `plan` & `role` - when a customer signs for a plan, which role(s) should they have
+    * `from_email` - when the payment failed emails go out, what email account do they come from
+    * `canceled_email_template` & `payment_failed_email_template` - email templates to use for the failed payment emails
 * in your `.env` file, which MUST NOT be checked in:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
     * `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
     * `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
+
+#### Example settings ####
+```
+charge_formset: charge
+charge_collections:
+  - things
+currency: usd
+plans_and_roles:
+  - 
+    plan: associate
+    role:
+      - dd062758-f56c-4ca5-a381-fe88f9c54517
+from_email: renewals@thedalzells.org
+canceled_email_template: email/cancel_subscription
+payment_failed_email_template: email/payment_failed
+```
 
 ## USAGE ##
 
 *NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. I recommend using the [yield](https://docs.statamic.com/tags/yield) and [section](https://docs.statamic.com/tags/section) tags for that.
 
 A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
+
+For all options below, the charge details are available in the `{{ charge:details }}` tag.
 
 There are four ways to use it:
 
@@ -36,7 +57,7 @@ Charge Form
 * for a one-time charge pass in the `amount` (in cents), `description`, and optionally the `currency` as parameters on the tag
 * for a subscription, have a `plan` field in your form with the Stripe Plan
 * if you want to redirect the customer after the charge, use a `redirect` parameter
-* `{{ success }}` and `{{ details }}` are available to you after a successful charge.
+* `{{ charge:success }}`and `{{ charge:details }}` are available to you after a successful charge. Use `{{ charge:errors }}` to check if there were errors.
 
 Statamic Form
 
@@ -46,12 +67,13 @@ Statamic Form
 * for a subscription, include a `plan` field along with the above email field. Currency, amount nor description are needed for subscriptions
 * the `customer_id` is available in the `submission` data
 * please note the `data-*` attributes on the form items. Those are required.
+* use the standard `success` and `error` variables.
 
 Example - Charge Form - Stripe Checkout:
 ```
 {{# currency is optional #}}
 {{ charge:form redirect="/thanks" amount="{amount}" description="{description}" currency="usd" }}
-    {{ if success }}
+    {{ if {charge:success} }}
         {{ details }}
             ID: {{ id }}
         {{ /details }}
@@ -112,7 +134,7 @@ Example - Statamic Form:
 			<div class="col">
 				<div class="form-item">
 					<label for="cvc">CVC</label>
-					<input type="text" data-stripe="cvc" id="cvc" maxlength="3" required placeholder="000">
+					<input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="000">
 				</div>
 			</div>
 		</div>
@@ -211,7 +233,7 @@ For a membership upon user registration:
 
             <div class="form-item">
                 <label for="cc_number">Zip/Postal Code</label>
-                <input type="text" data-stripe="number" id="address_zip" required>
+                <input type="text" data-stripe="address_zip" id="address_zip" required>
             </div>
 
             <div class="form-item">
@@ -302,7 +324,7 @@ Example:
     {{ charge:update_payment_form :customer_id="customer_id" attr="class:form|data-charge-form" }}
 
 		<div data-charge-errors></div>
-		{{ if errors }}
+		{{ if {charge:errors} }}
 			<div class="alert alert-danger">
 				{{ errors }}
 					{{ value }}<br>
@@ -360,4 +382,3 @@ Example:
     {{ /charge:update_payment_form }}
     {{ /user:profile }}
 ```
-
