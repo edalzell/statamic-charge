@@ -63,7 +63,7 @@ class ChargeController extends Controller
             // if there's a user logged in, store the details
             if ($user = User::getCurrent())
             {
-                $this->charge->updateUser($user, $charge);
+                $this->charge->updateUser($user, $charge, true);
             }
 
             // get the results ready for display
@@ -72,10 +72,11 @@ class ChargeController extends Controller
 
             $redirect = array_get($params, 'redirect', false);
 
-            return ($redirect) ? redirect($redirect) : back();
+            return $redirect ? redirect($redirect) : back();
         }
         catch (\Stripe\Error\Base $e)
         {
+            \Log::error($e->getMessage());
             return back()->withInput()->withErrors($e->getMessage(), 'charge');
         }
     }
@@ -92,14 +93,17 @@ class ChargeController extends Controller
                 $customer->source = $request->get('stripeToken'); // obtained with Checkout
                 $customer->save();
 
-                // get the results ready for display
+                // send 'success' back
                 $this->flash->put('success', true);
 
-                $redirect = $request->get('redirect', false);
+                $params = $this->charge->getDetails();
 
-                return ($redirect) ? redirect($redirect) : back();
+                $redirect = array_get($params, 'redirect', false);
+
+                return $redirect ? redirect($redirect) : back();
             }
             catch(\Stripe\Error\Card $e) {
+                \Log::error($e->getMessage());
 
                 // Use the variable $error to save any errors
                 // To be displayed to the customer later in the page
