@@ -26,7 +26,7 @@ fields:
         width: 50
       role:
         type: user_roles
-        display: 'Role add user to'
+        display: 'Role(s) to add to user'
         validate: required
         width: 50
     mode: table
