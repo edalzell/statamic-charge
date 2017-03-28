@@ -60,7 +60,15 @@ class ChargeTags extends Tags
 
     public function updatePaymentForm()
     {
+        $params = [];
+
         $html = $this->formOpen('update_payment');
+
+        if ($redirect = $this->get('redirect')) {
+            $params['redirect'] = $redirect;
+        }
+
+        $html .= '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
 
         // get the current card details
         $html .= $this->parse($this->charge->getSourceDetails($this->getParam('customer_id')));
