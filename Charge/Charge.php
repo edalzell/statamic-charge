@@ -101,18 +101,13 @@ class Charge
         return Refund::create(["charge" => $id]);
     }
 
-
     /**
-     * @param string $id Stripe Customer id
+     * @param string $subscription_id Stripe Subscription id
      */
-    public function cancel($id)
+    public function cancel($subscription_id)
     {
-        $subscription = $this->getSubscription($id);
-
         // don't renew at end of period
-        $subscription->cancel(['at_period_end' => true]);
-
-        // @todo set the subscription status to `canceled`
+        $this->getSubscription($subscription_id)->cancel(['at_period_end' => true]);
     }
 
     /**
@@ -148,19 +143,6 @@ class Charge
             $this->storage->putYAML($email, ['customer_id' => $customer->id]);
         }
 
-        if (isset($details['product']))
-        {
-            // get the list of products
-            $products = $yaml['products'] ?? [];
-
-            $products[] = $details['product'];
-
-            // store it for later
-            $this->storage->putYAML($email, [
-                'customer_id' => $customer->id,
-                'products' => array_unique($products)
-            ]);
-        }
         return $customer->__toArray(true);
      }
 
@@ -191,8 +173,10 @@ class Charge
         if (isset($charge['subscription']))
         {
             $user->set('plan', $charge['subscription']['plan']['id']);
+            $user->set('subscription_id', $charge['subscription']['id']);
             $user->set('subscription_start', $charge['subscription']['current_period_start']);
             $user->set('subscription_end', $charge['subscription']['current_period_end']);
+            $user->set('subscription_status', 'active');
 
             if ($role = $this->getRole($user->get('plan')))
             {
@@ -214,13 +198,13 @@ class Charge
     }
 
     /**
-     * @param $id string customer_id
+     * @param $subscription_id string Stripe subscription ID
      *
      * @return \Stripe\Subscription|null
      */
-    private function getSubscription($id)
+    private function getSubscription($subscription_id)
     {
-        return $id ? Subscription::retrieve($id) : null;
+        return $subscription_id ? Subscription::retrieve($subscription_id) : null;
     }
 
     /**
@@ -330,13 +314,11 @@ class Charge
     public static function getLocalDateTimeFromUTC($timestamp)
     {
         /** @var \Carbon\Carbon $dt */
-        $dt = new Carbon( '@' . $timestamp, 'Etc/UTC');
+        $dt = new Carbon('@' . $timestamp, 'Etc/UTC');
 
         /*
          * Convert to the server timezone
          */
-        $dt->tz(Config::get('system.timezone'));
-
-        return $dt;
+        return $dt->tz(Config::get('system.timezone'));
     }
 }
