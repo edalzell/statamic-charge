@@ -20,10 +20,10 @@ routes:
     as: lists.subscriptions
 
   # refund charge
-  /refund/{id}: refund
+  /refund/{id}: getRefund
 
-  # cancel subscription for the given customer id
-  /cancel/{id}: cancel
+  # cancel the given subscription id
+  /cancel/{id}: getCancel
 
-  # resubscribe the given customer id
-  /resubscribe/{id}: resubscribe
+  # resubscribe the given subscription id
+  /resubscribe/{id}: getResubscribe
