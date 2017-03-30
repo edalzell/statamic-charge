@@ -51,7 +51,7 @@ class ChargeController extends Controller
         return $this->view('lists.subscriptions', ['subscriptions' => $this->charge->getSubscriptions()]);
     }
 
-    public function postProcess()
+    public function postProcessPayment()
     {
         try
         {
@@ -125,73 +125,112 @@ class ChargeController extends Controller
         $event = request()->json()->all();
         $data = $event['data']['object'];
 
+        // find the right user (w/ the matching Stripe Customer ID)
+        /** @var \Statamic\Data\Users\User $user */
+        if (!($user = $this->whereUser(array_get($data, 'customer'))))
+        {
+            return response('No User Found');
+        }
+
         if ($event['type'] == 'invoice.payment_succeeded')
         {
-            // find the right user (w/ the matching Stripe Customer ID)
-            /** @var \Statamic\Data\Users\User $user */
-            if ($user = $this->whereUser($data['customer']))
-            {
-                // udpate the subscription dates and status
-                $user->set('subscription_start', $data['period_start']);
-                $user->set('subscription_end', $data['period_end']);
-                $user->set('subscription_status', 'canceled');
-                $user->save();
-            }
+            // update the subscription dates and status
+            $user->set('subscription_start', $data['period_start'])
+                ->set('subscription_end', $data['period_end'])
+                ->set('subscription_status', 'active')
+                ->save();
         }
-        elseif ($event['type'] == 'invoice.payment_failed')
+        elseif (($event['type'] == 'invoice.payment_failed') && ($data['next_payment_attempt']))
         {
-            // find the right user (w/ the matching Stripe Customer ID)
-            /** @var \Statamic\Data\Users\User $user */
-            if ($user = $this->whereUser($data['customer']))
+            $user->set('subscription_status', 'past_due');
+            $user->save();
+
+            $this->sendEmail(
+                $user,
+                'payment_failed_email_template',
+                [
+                    'plan' => $user->get('plan'),
+                    'first_name' => $user->get('first_name'),
+                    'last_name' => $user->get('last_name'),
+                    'attempt_count' => $data['attempt_count'],
+                    'next_payment_attempt' => $data['next_payment_attempt'],
+                ]);
+        }
+        elseif ($event['type'] == 'customer.subscription.updated')
+        {
+            $user->set('subscription_status', $data['cancel_at_period_end'] ? 'canceling' : 'active')
+                ->save();
+        }
+        elseif ($event['type'] == 'customer.subscription.deleted')
+        {
+            $user->set('subscription_status', 'canceled');
+
+            // remove the role from the user
+            // get the role associated w/ this plan
+            if ($role = $this->charge->getRole($user->get('plan')))
             {
-                // on the last try, the `next_payment_attempt` is null
-                if (!$data['next_payment_attempt'])
-                {
-                    $this->sendEmail(
-                        $user,
-                        'canceled_email_template',
-                        [
-                            'plan' => $user->get('plan'),
-                            'first_name' => $user->get('first_name'),
-                            'last_name' => $user->get('last_name'),
-                        ]
-                    );
+                // remove role from user
+                $roles = array_filter($user->get('roles', []), function($item) use ($role) {
+                    return $item != $role;
+                });
 
-                    // get the role associated w/ this plan
-                    if ($role = $this->charge->getRole($user->get('plan')))
-                    {
-                        // remove role from user
-                        $roles = array_filter($user->get('roles', []), function($item) use ($role) {
-                            return $item != $role;
-                        });
-
-                        $user->set('roles', $roles);
-                        $user->set('subscription_status', 'canceled');
-
-                        // store it
-                        $user->save();
-                    }
-                }
-                else
-                {
-                    $this->sendEmail(
-                        $user,
-                        'payment_failed_email_template',
-                        [
-                            'plan' => $user->get('plan'),
-                            'first_name' => $user->get('first_name'),
-                            'last_name' => $user->get('last_name'),
-                            'attempt_count' => $data['attempt_count'],
-                            'next_payment_attempt' => $data['next_payment_attempt'],
-                        ]);
-
-                    $user->set('subscription_status', 'past_due');
-                    $user->save();
-                }
+                $user->set('roles', $roles);
             }
+
+            // store it
+            $user->save();
+
+            $this->sendEmail(
+                $user,
+                'canceled_email_template',
+                [
+                    'plan' => $user->get('plan'),
+                    'first_name' => $user->get('first_name'),
+                    'last_name' => $user->get('last_name'),
+                ]
+            );
         }
 
         return response('Stripe Webhook processed');
+    }
+
+    /**
+     * Cancel a subscription
+     */
+    public function getCancel($subscription_id = null)
+    {
+        return $this->doAction('cancel', $subscription_id);
+    }
+
+    /**
+     * Resubscribe to a subscription
+     */
+    public function getResubscribe($subscription_id = null)
+    {
+        return $this->doAction('resubscribe', $subscription_id);
+    }
+
+    /**
+     * Refund a charge
+     */
+    public function getRefund($charge_id = null)
+    {
+        return $this->doAction('refund', $charge_id);
+    }
+
+    /**
+     * Perform an action then redirect if required
+     */
+    private function doAction($action, $id = null)
+    {
+        $this->charge->$action($id ?? request()->segment(4));
+
+        $redirect = request()->query('redirect', false);
+
+        // send 'success' back
+        $this->flash->put('success', true);
+
+        return $redirect ? redirect($redirect) : back();
     }
 
     /**
@@ -209,34 +248,15 @@ class ChargeController extends Controller
             ->send();
     }
 
+    /**
+     * @param string $customer_id Stripe Customer ID
+     * @return \Statamic\Contracts\Data\Users\User
+     *
+     */
     private function whereUser($customer_id)
     {
         return User::all()->first(function ($id, $user) use ($customer_id) {
             return $user->get('customer_id') === $customer_id;
         });
-    }
-
-    public function refund($id = null)
-    {
-        $this->charge->refund($id);
-
-        // redirect back to main page
-        return response()->redirectToRoute('lists.charges');
-    }
-
-    public function cancel($id = null)
-    {
-        $this->charge->cancel($id);
-
-        // redirect back to main page
-        return response()->redirectToRoute('lists.subscriptions');
-    }
-
-    public function resubscribe($id = null)
-    {
-        $this->charge->resubscribe($id);
-
-        // redirect back to main page
-        return response()->redirectToRoute('lists.subscriptions');
     }
 }
