@@ -2,8 +2,8 @@
 
 namespace Statamic\Addons\Charge;
 
-use Statamic\API\Crypt;
 use Statamic\API\URL;
+use Statamic\API\Crypt;
 use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
@@ -21,61 +21,59 @@ class ChargeTags extends Tags
      *
      * @return string
      */
-    public function data()
+    public function data($params = null)
     {
-        return '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($this->parameters) .'" />';
+        return '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params ?? $this->parameters) .'" />';
     }
 
     /**
-     * The {{ charge:form }} tag
+     * The {{ charge:payment_form }} tag
+     *
+     * @deprecated Use '{{ charge:payment_form }}' instead
      *
      * @return string|array
      */
     public function form()
     {
-        $data = [];
-        $params = $this->parameters;
+        return $this->paymentForm();
+    }
 
-        $html = $this->formOpen('process');
+    /**
+     * The {{ charge:payment_form }} tag
+     *
+     * @return string|array
+     */
+    public function paymentForm()
+    {
+        return $this->createForm('process_payment');
+    }
 
+    /**
+     * The {{ charge:update_payment_form }} tag
+     *
+     * @return string|array
+     */
+    public function updatePaymentForm()
+    {
+        return $this->createForm(
+            'update_payment',
+            $this->charge->getSourceDetails($this->getParam('customer_id'))
+        );
+    }
+
+    private function createForm($action, $data = [])
+    {
         if ($this->success())
         {
             $data['success'] = true;
             $data['details'] = $this->flash->get('details');
         }
 
-        if ($redirect = $this->get('redirect')) {
-            $params['redirect'] = $redirect;
+        if ($this->hasErrors()) {
+            $data['errors'] = $this->getErrorBag()->all();
         }
 
-        // need to encrypt the amount & description so they can't be modified
-        $html .= '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
-
-        $html .= $this->parse($data);
-
-        $html .= '</form>';
-
-        return $html;
-    }
-
-    public function updatePaymentForm()
-    {
-        $params = [];
-
-        $html = $this->formOpen('update_payment');
-
-        if ($redirect = $this->get('redirect')) {
-            $params['redirect'] = $redirect;
-        }
-
-        $html .= '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params) .'" />';
-
-        // get the current card details
-        $html .= $this->parse($this->charge->getSourceDetails($this->getParam('customer_id')));
-
-        $html .= '</form>';
-
-        return $html;
+        return $this->formOpen($action) . $this->data() . $this->parse($data) . '</form>';
     }
 
     /**
@@ -139,9 +137,36 @@ class ChargeTags extends Tags
         return '<input type="hidden" name="process_payment" value="true" />';
     }
 
-    public function cancelSubscriptionLink()
+    /**
+     * The {{ charge:cancel_subscription_url }} tag
+     *
+     * @return string
+     */
+    public function cancelSubscriptionUrl()
     {
-        return URL::assemble($this->actionUrl('cancel', false), $this->getParam('customer'));
+        return $this->makeUrl('cancel');
+    }
+
+    /**
+     * The {{ charge:renew_subscription_url }} tag
+     *
+     * @return string
+     */
+    public function renewSubscriptionUrl()
+    {
+        return $this->makeUrl('resubscribe');
+    }
+
+    private function makeUrl($action)
+    {
+        $url = URL::assemble($this->actionUrl($action, false), $this->getParam('subscription'));
+
+        // if they want to redirect, add it as a queary param
+        if ($redirect = $this->getParam('redirect'))
+        {
+            $url .= '&redirect=' . $redirect;
+        }
+        return $url;
     }
 
     /**
@@ -152,7 +177,19 @@ class ChargeTags extends Tags
     private function hasErrors()
     {
         return (session()->has('errors'))
-            ? session()->get('errors')->hasBag('charge')
+            ? session('errors')->hasBag('charge')
             : false;
+    }
+
+    /**
+     * Get the errorBag from session
+     *
+     * @return object
+     */
+    private function getErrorBag()
+    {
+        if ($this->hasErrors()) {
+            return session('errors')->getBag('charge');
+        }
     }
 }
