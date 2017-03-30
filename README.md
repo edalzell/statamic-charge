@@ -37,6 +37,12 @@ payment_failed_email_template: email/payment_failed
 
 ## USAGE ##
 
+1. [Forms](#forms)
+2. [Tags](#tags)
+3. [User Data](#user-data)
+4. [Payments](#payments)
+
+### <a name="forms"></a>Forms ###
 *NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. I recommend using the [yield](https://docs.statamic.com/tags/yield) and [section](https://docs.statamic.com/tags/section) tags for that.
 
 A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
@@ -52,19 +58,20 @@ There are four ways to use it:
 
 *NOTE*: if the user is logged in, the subscription details will be stored in the user data
 
-Charge Form
+Charge Form, `{{ charge:payment_form }}`
 
 * for a one-time charge pass in the `amount` (in cents), `description`, and optionally the `currency` as parameters on the tag
 * for a subscription, have a `plan` field in your form with the Stripe Plan
 * if you want to redirect the customer after the charge, use a `redirect` parameter
-* `{{ charge:success }}`and `{{ charge:details }}` are available to you after a successful charge. Use `{{ charge:errors }}` to check if there were errors.
+* inside the tag, `success`, `errors` and `details` are available as variables
+* outside the tag use `{{ charge:success }}`, `{{ charge:errors }}` and `{{ charge:details }}` instead.
 
-Statamic Form
+Statamic Form, `{{ form:create }}`
 
 * the following fields *must* be in your form:
     * `stripeEmail` or `email` - email of customer
 * for a one-time charge, somewhere in your form you need to set the `description`, `amount` (in cents) or `amount_dollars` (like 23.45), and optionally `currency` via `{{ charge:data }}` or a form field
-* for a subscription, include a `plan` field along with the above email field. Currency, amount nor description are needed for subscriptions
+* for a subscription, include a `plan` field along with the above email field. Neither `currency`, `amount` nor `description` are needed for subscriptions
 * the `customer_id` is available in the `submission` data
 * please note the `data-*` attributes on the form items. Those are required.
 * use the standard `success` and `error` variables.
@@ -72,8 +79,8 @@ Statamic Form
 Example - Charge Form - Stripe Checkout:
 ```
 {{# currency is optional #}}
-{{ charge:form redirect="/thanks" amount="{amount}" description="{description}" currency="usd" }}
-    {{ if {charge:success} }}
+{{ charge:payment_form redirect="/thanks" amount="{amount}" description="{description}" currency="usd" }}
+    {{ if success }}
         {{ details }}
             ID: {{ id }}
         {{ /details }}
@@ -108,7 +115,7 @@ Example - Statamic Form:
 
 		<div class="form-item">
 			<label for="cc_number">Zip/Postal Code</label>
-			<input type="text" data-stripe="number" id="address_zip" required>
+			<input type="text" data-stripe="address_zip" id="address_zip" required>
 		</div>
 
 		<div class="form-item">
@@ -134,14 +141,14 @@ Example - Statamic Form:
 			<div class="col">
 				<div class="form-item">
 					<label for="cvc">CVC</label>
-					<input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="000">
+					<input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="0000">
 				</div>
 			</div>
 		</div>
 
 	</fieldset>
 
-	{{ charge:data amount="{amount}" description="{description}" currency="cad" }}
+	{{ charge:data :amount="amount" :description="description" currency="cad" }}
 
 	<button class="button primary" id="register" data-charge-button>Pay</button>
 
@@ -259,7 +266,7 @@ For a membership upon user registration:
                 <div class="col">
                     <div class="form-item">
                         <label for="cvc">CVC</label>
-                        <input type="text" data-stripe="cvc" id="cvc" maxlength="3" required placeholder="000">
+                        <input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="0000">
                     </div>
                 </div>
             </div>
@@ -280,7 +287,35 @@ For a membership upon user registration:
 
 For Workshop entry creation, use the same fields/tags as above but add `{{ charge:process_payment }}` to the template used to **CREATE** entries. Do **NOT** put it on the template used to edit entries.
 
-For a one-time, take out the `plan` part and use `{{ charge:data }}` for the amount, etc
+For a one-time charge, take out the `plan` part and use `{{ charge:data }}` for the amount, etc
+
+### <a name="tags"></a>Tags ###
+
+* Cancel - `{{ charge:cancel_subscription_url }}` - creates a URL to cancel a subscription. Pass in the `subscription_id`.
+    * example `<a href="{{ charge:cancel_subscription_url :subscription_id="subscription_id }}">Cancel Subscription</a>`
+* Resubscribe - `{{ charge:renew_subscription_url }}` - creates a URL to resubscribe to a subscription. Pass in the `subscription_id`
+* Success - `{{ charge:success }}` - was the last action/transaction successful?
+* Errors - `{{ charge:errors }}` - if there were errors, they'll be in here
+* Details - `{{ charge:details }}` - transaction details (all the data from Stripe)
+* Data - `{{ charge:data }}` - to pass transaction data in your form, you can set the parameters (i.e. `amount="50"`)
+* JS - `{{ charge:js }}` - adds the required JS to generate the Stripe token needed
+
+### <a name="user-data"></a>User Data ###
+
+The following subscription data is stored in the user:
+* `customer_id` - Stripe customer id
+* `created_on` - timestamp indicating when customer was created
+* `plan`: Stripe plan user is subscribed to
+* `subscription_start`: timestamp marking the beginning of the subscription
+* `subscription_end`: timestamp marking the end of the subscription
+* `subscription_id`: Strip subscription id
+* `subscription_status`: status of the subscription. One of:
+    * `active` - subscription is current
+    * `canceled` - subscription is inactive
+    * `canceling` - subscription will not auto-renew at `subscription_end` 
+    * `past_due` - payment has failed but subscription not canceled, yet
+
+### <a name="payments"></a>Payments ###
 
 #### Payment Failures ####
 
@@ -303,9 +338,9 @@ These variables are available:
 * `last_name`- customer's last name
 
 
-#### Updating Payment ####
+#### Updating Payment Source ####
 
-You can have your users update their own payment information. Use the `charge:update_payment` tag and pass in the Stripe `custormer_id` as a parameter.
+You can have your users update their own payment information. Use the `charge:update_payment_form` tag and pass in the Stripe `custormer_id` as a parameter.
 
 Like the charge, this form requires the `charge:js` tag to be on the page so that the Stripe token can be generated. If you want to redirect after success, pass a `redirect` url.
 
@@ -313,7 +348,7 @@ As w/ the payment form, remember **NOT** to put `name` fields on the CC form inp
 Example:
 
 ```
-    {{ user:profile username="{username}" }}
+    {{ user:profile }}
 
         <header>
             <h1>{{ name or username }}</h1>
@@ -321,64 +356,63 @@ Example:
             <img src="{{ email | gravatar:200 }}" alt="{{ name }}" class="img-circle" />
         </header>
 
-    {{ charge:update_payment_form :customer_id="customer_id" attr="class:form|data-charge-form" }}
-
-		<div data-charge-errors></div>
-		{{ if {charge:errors} }}
-			<div class="alert alert-danger">
-				{{ errors }}
-					{{ value }}<br>
-				{{ /errors }}
-			</div>
-		{{ /if }}
-
-        <fieldset class="payment">
-            <legend>Payment</legend>
-            <div class="form-item">
-                <label for="cc_name">Name on Card</label>
-                <input type="text" data-stripe="name" id="cc_name" required value="{{ name }}">
-            </div>
-
-            <div class="form-item">
-                <label for="cc_number">Zip/Postal Code</label>
-                <input type="text" data-stripe="number" id="address_zip" required>
-            </div>
-
-            <div class="form-item">
-                <label for="cc_number">Card Number</label>
-                <input type="text" data-stripe="number" id="cc_number" required>
-            </div>
-
-            <div class="row row-inner">
-                <div class="col">
-                    <div class="form-item">
-                        <label for="exp_month">Expiry Month</label>
-                        <input type="text" data-stripe="exp_month" id="exp_month" maxlength="2" required value="{{ exp_month }}">
+        {{ charge:update_payment_form :customer_id="customer_id" attr="class:form|data-charge-form" }}
+            <div data-charge-errors></div>
+            {{ if errors }}
+                <div class="alert alert-danger">
+                    {{ errors }}
+                        {{ value }}<br>
+                    {{ /errors }}
+                </div>
+            {{ /if }}
+    
+            <fieldset class="payment">
+                <legend>Payment</legend>
+                <div class="form-item">
+                    <label for="cc_name">Name on Card</label>
+                    <input type="text" data-stripe="name" id="cc_name" required value="{{ name }}">
+                </div>
+    
+                <div class="form-item">
+                    <label for="cc_number">Zip/Postal Code</label>
+                    <input type="text" data-stripe="address_zip" id="address_zip" required>
+                </div>
+    
+                <div class="form-item">
+                    <label for="cc_number">Card Number</label>
+                    <input type="text" data-stripe="number" id="cc_number" required>
+                </div>
+    
+                <div class="row row-inner">
+                    <div class="col">
+                        <div class="form-item">
+                            <label for="exp_month">Expiry Month</label>
+                            <input type="text" data-stripe="exp_month" id="exp_month" maxlength="2" required value="{{ exp_month }}">
+                        </div>
+                    </div>
+    
+                    <div class="col">
+                        <div class="form-item">
+                            <label for="exp_year">Expiry Year</label>
+                            <input type="text" data-stripe="exp_year" id="exp_year" maxlength="2" required value="{{ exp_year }}">
+                        </div>
+                    </div>
+    
+                    <div class="col">
+                        <div class="form-item">
+                            <label for="cvc">CVC</label>
+                            <input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="0000">
+                        </div>
                     </div>
                 </div>
-
-                <div class="col">
-                    <div class="form-item">
-                        <label for="exp_year">Expiry Year</label>
-                        <input type="text" data-stripe="exp_year" id="exp_year" maxlength="2" required value="{{ exp_year }}">
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="form-item">
-                        <label for="cvc">CVC</label>
-                        <input type="text" data-stripe="cvc" id="cvc" maxlength="3" required placeholder="000">
-                    </div>
-                </div>
-            </div>
-
-        </fieldset>
-
-        <button class="button primary" id="update-payment" data-charge-button>Update</button>
-
-
-    </article>
-
-    {{ /charge:update_payment_form }}
+    
+            </fieldset>
+    
+            <button class="button primary" id="update-payment" data-charge-button>Update</button>
+    
+    
+        </article>
+    
+        {{ /charge:update_payment_form }}
     {{ /user:profile }}
 ```
