@@ -128,6 +128,16 @@ class ChargeTags extends Tags
     }
 
     /**
+     * Get the plan details
+     *
+     * @return string
+     */
+    public function plan()
+    {
+        return $this->parse($this->charge->getPlan($this->getParam('plan')));
+    }
+
+    /**
      * The {{ charge:process_payment }} tag
      *
      * @return string
@@ -159,7 +169,7 @@ class ChargeTags extends Tags
 
     private function makeUrl($action)
     {
-        $url = URL::assemble($this->actionUrl($action, false), $this->getParam('subscription'));
+        $url = URL::assemble($this->actionUrl($action, false), $this->getParam('subscription_id'));
 
         // if they want to redirect, add it as a queary param
         if ($redirect = $this->getParam('redirect'))

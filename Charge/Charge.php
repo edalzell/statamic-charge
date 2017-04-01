@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge;
 
+use Stripe\Plan;
 use Stripe\Stripe;
 use Stripe\Refund;
 use Carbon\Carbon;
@@ -205,6 +206,11 @@ class Charge
     private function getSubscription($subscription_id)
     {
         return $subscription_id ? Subscription::retrieve($subscription_id) : null;
+    }
+
+    public function getPlan($plan)
+    {
+        return Plan::retrieve($plan)->__toArray();
     }
 
     /**
