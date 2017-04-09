@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge;
 
+use Stripe\Plan;
 use Statamic\API\URL;
 use Statamic\API\Crypt;
 use Statamic\Extend\Tags;
@@ -53,10 +54,10 @@ class ChargeTags extends Tags
      *
      * @return string|array
      */
-    public function updatePaymentForm()
+    public function updateCustomerForm()
     {
         return $this->createForm(
-            'update_payment',
+            'update_customer',
             $this->charge->getSourceDetails($this->getParam('customer_id'))
         );
     }
@@ -120,7 +121,10 @@ class ChargeTags extends Tags
      */
     public function js()
     {
+        $plan_id = $this->getParam('plan_id');
+        $free_plan = $this->getParam('free_plan');
         $js = '<script src="https://js.stripe.com/v2/"></script>' . PHP_EOL;
+        $js .= $this->js->inline("var Charge = ". json_encode(['plan' => $plan_id, 'freePlan' => $free_plan]) . ";") . PHP_EOL;
         $js .= $this->js->tag("charge") . PHP_EOL;
         $js .= $this->js->inline("Stripe.setPublishableKey('" . env('STRIPE_PUBLIC_KEY') . "')") . PHP_EOL;
 
@@ -135,6 +139,18 @@ class ChargeTags extends Tags
     public function plan()
     {
         return $this->parse($this->charge->getPlan($this->getParam('plan')));
+    }
+
+    /**
+     * Get the Stripe plans
+     *
+     * @return string
+     */
+    public function plans()
+    {
+        $plans = Plan::all()->__toArray(true);
+
+        return $this->parseLoop($plans['data']);
     }
 
     /**
