@@ -6,6 +6,9 @@ use Statamic\API\User;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Statamic\CP\Navigation\NavItem;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\MessageBag;
+use Illuminate\Support\ViewErrorBag;
 
 class ChargeListener extends Listener
 {
@@ -53,11 +56,23 @@ class ChargeListener extends Listener
                 {
                     $this->charge->updateUser($user, $charge);
                 }
+
+                // get the results ready for display
+                $this->flash->put('success', true);
+                $this->flash->put('details', $charge);
             }
             catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
+
                 // @todo how return an error?
+                // @todo this is what `back()->withError(..)` does. Remove when they update Workshop
+                $value = new MessageBag((array) $e->getMessage());
+
+                $this->session->flash(
+                    'errors',
+                    $this->session->get('errors', new ViewErrorBag)->put('charge', $value)
+                );
             }
         }
     }
