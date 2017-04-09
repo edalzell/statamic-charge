@@ -123,7 +123,7 @@ class Charge
         $customer = null;
 
         $email = $details['email'];
-        $token = $details['stripeToken'];
+        $token = $details['stripeToken'] ?? null;
 
         // first see if the customer exists already
         if ($yaml = $this->storage->getYAML($email))
@@ -173,28 +173,76 @@ class Charge
 
         if (isset($charge['subscription']))
         {
-            $user->set('plan', $charge['subscription']['plan']['id']);
-            $user->set('subscription_id', $charge['subscription']['id']);
-            $user->set('subscription_start', $charge['subscription']['current_period_start']);
-            $user->set('subscription_end', $charge['subscription']['current_period_end']);
-            $user->set('subscription_status', 'active');
-
-            if ($role = $this->getRole($user->get('plan')))
-            {
-                // get the user's roles
-                $roles = $user->get('roles', []);
-
-                // add the role id to the roles
-                $roles[] = $role;
-
-                // set the user's roles
-                $user->set('roles', $roles);
-            }
+            $this->addUserRoles($user, $user->get('plan'));
+            $this->updateUserSubscription($user, $charge['subscription']);
         }
 
         if ($save)
         {
             $user->save();
+        }
+    }
+
+    /**
+     * @param \Statamic\Data\Users\User $user
+     * @param $subscription array
+     */
+    public function updateUserSubscription($user, $subscription)
+    {
+        $user->set('plan', $subscription['plan']['id']);
+        $user->set('subscription_id', $subscription['id']);
+        $user->set('subscription_start', $subscription['current_period_start']);
+        $user->set('subscription_end', $subscription['current_period_end']);
+        $user->set('subscription_status', 'active');
+    }
+
+    /**
+     * @param \Statamic\Data\Users\User $user
+     * @param $plan string
+     */
+    public function updateUserRoles($user, $plan)
+    {
+        // if the plan is different
+        if ($user->get('plan') != $plan)
+        {
+            $this->removeUserRoles($user);
+            $this->addUserRoles($user, $plan);
+        }
+    }
+    /**
+     * @param $user \Statamic\Data\Users\User
+     */
+    public function removeUserRoles($user)
+    {
+        // remove the role from the user
+        // get the role associated w/ this plan
+        if ($role = $this->getRole($user->get('plan')))
+        {
+            // remove role from user
+            $roles = array_filter($user->get('roles', []), function($item) use ($role) {
+                return $item != $role;
+            });
+
+            $user->set('roles', $roles);
+        }
+    }
+
+    /**
+     * @param $user \Statamic\Data\Users\User
+     * @param $plan string
+     */
+    public function addUserRoles($user, $plan)
+    {
+        if ($role = $this->getRole($plan))
+        {
+            // get the user's roles
+            $roles = $user->get('roles', []);
+
+            // add the role id to the roles
+            $roles[] = $role;
+
+            // set the user's roles
+            $user->set('roles', array_unique($roles));
         }
     }
 
@@ -291,9 +339,11 @@ class Charge
 
     public function getSourceDetails($customer_id)
     {
-        return Customer::retrieve([
+        $customer = Customer::retrieve([
             'id' => $customer_id,
-            'expand' => ['default_source']])->default_source->__toArray(true);
+            'expand' => ['default_source']]);
+
+        return $customer->default_source ? $customer->default_source->__toArray(true) : [];
     }
 
 
