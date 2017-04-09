@@ -4,14 +4,41 @@ fields:
     mode: form
     display: Form
     max_items: 1
+    width: 33
   charge_collections:
     type: suggest
     mode: collections
     display: Collections
+    width: 33
   currency:
     type: text
     validate: required
+    width: 33
     default: usd
+  statuses_section:
+    type: section
+    display: Statuses
+    instructions: What would you like to call the statuses?
+  active:
+    type: text
+    validate: required
+    default: Active
+    width: 25
+  canceling:
+    type: text
+    validate: required
+    default: Canceling
+    width: 25
+  past_due:
+    type: text
+    validate: required
+    default: Past Due
+    width: 25
+  canceled:
+    type: text
+    validate: required
+    default: Canceled
+    width: 25
   roles_section:
     type: section
     display: Plans & Roles
