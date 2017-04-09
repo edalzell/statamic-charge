@@ -34,7 +34,9 @@ class ChargeController extends Controller
 
     public function customers()
     {
-        return $this->view('lists.customers', ['customers' => $this->charge->getCustomers()]);
+        $customers = Customer::all(['limit'=>100])->__toArray(true);
+
+        return $this->view('lists.customers', ['customers' =>  $customers['data']]);
     }
 
     public function charges()

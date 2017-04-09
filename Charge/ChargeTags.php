@@ -138,7 +138,7 @@ class ChargeTags extends Tags
      */
     public function plan()
     {
-        return $this->parse($this->charge->getPlan($this->getParam('plan')));
+        return $this->parse(Plan::retrieve($this->getParam('plan'))->__toArray());
     }
 
     /**

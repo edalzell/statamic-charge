@@ -256,23 +256,6 @@ class Charge
         return $subscription_id ? Subscription::retrieve($subscription_id) : null;
     }
 
-    public function getPlan($plan)
-    {
-        return Plan::retrieve($plan)->__toArray();
-    }
-
-    /**
-     * Get the list of customers
-     *
-     * @return array
-     */
-    public function getCustomers()
-    {
-        $customers = Customer::all(['limit'=>100])->__toArray(true);
-
-        return $customers['data'];
-    }
-
     public function getCharges()
     {
         $charges = StripeCharge::all(['limit'=>100])->__toArray(true);
