@@ -8,6 +8,7 @@ use Statamic\API\Str;
 use Statamic\API\User;
 use Statamic\API\Email;
 use Statamic\API\Config;
+use Stripe\Subscription;
 use Statamic\Extend\Controller;
 use Symfony\Component\Intl\Intl;
 
@@ -81,36 +82,61 @@ class ChargeController extends Controller
         }
     }
 
-    public function postUpdatePayment()
+    public function postUpdateCustomer()
     {
         $request = request();
 
-        if (($user = User::getCurrent()) && ($request->has('stripeToken')))
+        if ($user = User::getCurrent())
         {
-            try
+            // if theres a stripe token then they're updating the payment info
+            // but also check if the plan is different so that can be updated too
+            $hasToken = $request->has('stripeToken');
+            $plan = $request->get('plan');
+            $diffPlan = $user->get('plan') != $plan;
+
+            if ($hasToken || $diffPlan)
             {
-                $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
-                $customer->source = $request->get('stripeToken'); // obtained with Checkout
-                $customer->save();
+                try
+                {
+                    // if there's a token we're updating the payment info
+                    if ($hasToken)
+                    {
+                        $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
+                        $customer->source = $request->get('stripeToken'); // obtained with Checkout
+                        $customer->save();
+                    }
 
-                // send 'success' back
-                $this->flash->put('success', true);
+                    if ($diffPlan)
+                    {
+                        $subscription = Subscription::retrieve($user->get('subscription_id'));
+                        $subscription->plan = $plan;
+                        $subscription->save();
 
-                $params = $this->charge->getDetails();
+                        $this->charge->updateUserRoles($user, $plan);
+                        $this->charge->updateUserSubscription($user, $subscription->__toArray(true));
 
-                $redirect = array_get($params, 'redirect', false);
+                        $user->save();
+                    }
 
-                return $redirect ? redirect($redirect) : back();
-            }
-            catch(\Stripe\Error\Card $e) {
-                \Log::error($e->getMessage());
+                    // send 'success' back
+                    $this->flash->put('success', true);
 
-                // Use the variable $error to save any errors
-                // To be displayed to the customer later in the page
-                $body = $e->getJsonBody();
-                $error  = $body['error'];
+                    $params = $this->charge->getDetails();
 
-                return back()->withInput()->withErrors($error['message'], 'charge');
+                    $redirect = array_get($params, 'redirect', false);
+
+                    return $redirect ? redirect($redirect) : back();
+                }
+                catch(\Stripe\Error\Card $e) {
+                    \Log::error($e->getMessage());
+
+                    // Use the variable $error to save any errors
+                    // To be displayed to the customer later in the page
+                    $body = $e->getJsonBody();
+                    $error  = $body['error'];
+
+                    return back()->withInput()->withErrors($error['message'], 'charge');
+                }
             }
         }
     }
@@ -158,24 +184,16 @@ class ChargeController extends Controller
         }
         elseif ($event['type'] == 'customer.subscription.updated')
         {
-            $user->set('subscription_status', $data['cancel_at_period_end'] ? 'canceling' : 'active')
-                ->save();
+            $this->charge->updateUserSubscription($user, $data);
+
+            $user->save();
         }
         elseif ($event['type'] == 'customer.subscription.deleted')
         {
             $user->set('subscription_status', 'canceled');
 
             // remove the role from the user
-            // get the role associated w/ this plan
-            if ($role = $this->charge->getRole($user->get('plan')))
-            {
-                // remove role from user
-                $roles = array_filter($user->get('roles', []), function($item) use ($role) {
-                    return $item != $role;
-                });
-
-                $user->set('roles', $roles);
-            }
+            $this->charge->removeUserRoles($user);
 
             // store it
             $user->save();
