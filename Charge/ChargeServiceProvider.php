@@ -23,7 +23,7 @@ class ChargeServiceProvider extends ServiceProvider
     {
         // Global addon variables
         $addon = [
-            'timezone'    => Config::get('system.timzone'),
+            'timezone'    => Config::get('system.timezone'),
             'version'     => $this->getMeta()['version'],
             'addon_name'  => $this->getAddonName(),
             'cp_path'     => CP_ROUTE
@@ -35,6 +35,6 @@ class ChargeServiceProvider extends ServiceProvider
         $excludes = Config::get('system.csrf_exclude', []);
 
         $excludes[] = $this->actionUrl('webhook');
-        Config::set('system.csrf_exclude', $excludes);
+        Config::set('system.csrf_exclude', array_unique($excludes));
     }
 }
