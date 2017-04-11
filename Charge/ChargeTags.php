@@ -153,6 +153,13 @@ class ChargeTags extends Tags
         return $this->parseLoop($plans['data']);
     }
 
+    public function status()
+    {
+        $status = $this->get('status', array_get($this->context, 'status', ''));
+
+        return $this->getConfig($status, $status);
+    }
+
     /**
      * The {{ charge:process_payment }} tag
      *
