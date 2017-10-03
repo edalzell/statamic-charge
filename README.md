@@ -340,7 +340,7 @@ These variables are available:
 
 #### Updating Payment Source ####
 
-You can have your users update their own payment information. Use the `charge:update_payment_form` tag and pass in the Stripe `custormer_id` as a parameter.
+You can have your users update their own payment information. Use the `charge:update_customer_form` tag and pass in the Stripe `custormer_id` as a parameter.
 
 Like the charge, this form requires the `charge:js` tag to be on the page so that the Stripe token can be generated. If you want to redirect after success, pass a `redirect` url.
 
@@ -356,7 +356,7 @@ Example:
             <img src="{{ email | gravatar:200 }}" alt="{{ name }}" class="img-circle" />
         </header>
 
-        {{ charge:update_payment_form :customer_id="customer_id" attr="class:form|data-charge-form" }}
+        {{ charge:update_customer_form :customer_id="customer_id" attr="class:form|data-charge-form" }}
             <div data-charge-errors></div>
             {{ if errors }}
                 <div class="alert alert-danger">
@@ -413,6 +413,6 @@ Example:
     
         </article>
     
-        {{ /charge:update_payment_form }}
+        {{ /charge:update_customer_form }}
     {{ /user:profile }}
 ```
