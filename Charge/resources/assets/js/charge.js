@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function (event) {
          if (!isFreePlan(plan) && !stripeFieldsEmpty()) {
             // Disable the submit button to prevent repeated clicks:
-            form.querySelector('[data-charge-button]').disabled = true;
+            button.disabled = true;
 
             // Request a token from Stripe:
             Stripe.card.createToken(form, stripeResponseHandler);
