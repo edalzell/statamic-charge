@@ -1,5 +1,5 @@
 name: Charge
-version: 2.4
+version: 2.5
 description: Allows you to charge (one-time or subscription) your customer via Stripe
 url: silentzconsulting.com/addons/charge
 developer: Erin Dalzell

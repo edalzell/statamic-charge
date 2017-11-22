@@ -2,28 +2,18 @@
 
 namespace Statamic\Addons\Charge;
 
-use Stripe\Plan;
-use Stripe\Stripe;
-use Stripe\Refund;
 use Carbon\Carbon;
+use Stripe\Refund;
 use Stripe\Customer;
 use Statamic\API\URL;
 use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
-use Statamic\Extend\Extensible;
 use Stripe\Charge as StripeCharge;
 
-class Charge
+trait Charge
 {
-    use Extensible;
-
-    const PARAM_KEY = "_charge_params";
-
-    public function __construct()
-	{
-		Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
-	}
+    static $param_key = "_charge_params";
 
     /**
      * Make the appropriate charge, either a one time or a subscription
@@ -34,7 +24,7 @@ class Charge
      */
     public function charge($details)
     {
-        $result = [];
+        $result = array();
 
         // always make a customer
         /** @var \Stripe\Customer $customer */
@@ -115,15 +105,20 @@ class Charge
      * Get the customer if it exists, otherwise create a new one
      *
      * @param $details
-     * @return null|Customer
+     * @return array
      */
     private function getOrCreateCustomer($details)
     {
         /** @var \Stripe\Customer $customer */
         $customer = null;
+        $token = null;
 
         $email = $details['email'];
-        $token = $details['stripeToken'] ?? null;
+
+        if (isset($details['stripeToken']))
+        {
+            $token = $details['stripeToken'];
+        }
 
         // first see if the customer exists already
         if ($yaml = $this->storage->getYAML($email))
@@ -150,9 +145,9 @@ class Charge
     /**
      * @return array|string
      */
-    public function decryptParams()
+    private function decryptParams()
     {
-        return request()->has(Charge::PARAM_KEY) ? Crypt::decrypt(request(Charge::PARAM_KEY)) : [];
+        return request()->has(self::$param_key) ? Crypt::decrypt(request(self::$param_key)) : array();
     }
 
 
@@ -173,7 +168,7 @@ class Charge
 
         if (isset($charge['subscription']))
         {
-            $this->addUserRoles($user, $user->get('plan'));
+            $this->addUserRoles($user, $charge['subscription']['plan']['id']);
             $this->updateUserSubscription($user, $charge['subscription']);
         }
 
@@ -219,7 +214,7 @@ class Charge
         if ($role = $this->getRole($user->get('plan')))
         {
             // remove role from user
-            $roles = array_filter($user->get('roles', []), function($item) use ($role) {
+            $roles = array_filter($user->get('roles', array()), function($item) use ($role) {
                 return $item != $role;
             });
 
@@ -236,7 +231,7 @@ class Charge
         if ($role = $this->getRole($plan))
         {
             // get the user's roles
-            $roles = $user->get('roles', []);
+            $roles = $user->get('roles', array());
 
             // add the role id to the roles
             $roles[] = $role;
@@ -297,7 +292,7 @@ class Charge
      * @param $data array
      * @return array
      */
-    public function getDetails($data = [])
+    public function getDetails($data = array())
     {
         // gotta merge the email stuff so there's just one
         $data = array_merge(
@@ -313,7 +308,7 @@ class Charge
 
     public function getRole($plan)
     {
-        $plan_role = collect($this->getConfig('plans_and_roles', []))->first(function($ignored, $data) use ($plan) {
+        $plan_role = collect($this->getConfig('plans_and_roles', array()))->first(function($ignored, $data) use ($plan) {
             return $plan == array_get($data, 'plan');
         });
 
@@ -326,7 +321,7 @@ class Charge
             'id' => $customer_id,
             'expand' => ['default_source']]);
 
-        return $customer->default_source ? $customer->default_source->__toArray(true) : [];
+        return $customer->default_source ? $customer->default_source->__toArray(true) : array();
     }
 
 

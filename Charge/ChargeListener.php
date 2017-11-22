@@ -2,16 +2,17 @@
 
 namespace Statamic\Addons\Charge;
 
+use Stripe\Stripe;
 use Statamic\API\User;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
-use Statamic\CP\Navigation\NavItem;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\MessageBag;
+use Statamic\CP\Navigation\NavItem;
 use Illuminate\Support\ViewErrorBag;
 
 class ChargeListener extends Listener
 {
+    use Charge;
     /**
      * The events to be listened for, and the methods to call.
      *
@@ -27,12 +28,9 @@ class ChargeListener extends Listener
         'cp.add_to_head' => 'addToHead',
    ];
 
-    /** @var  \Statamic\Addons\Charge\Charge */
-    private $charge;
-
     public function init()
     {
-        $this->charge = new Charge;
+        Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
     }
 
     /**
@@ -49,12 +47,12 @@ class ChargeListener extends Listener
             try
             {
                 // get paid
-                $charge = $this->charge->charge($this->charge->getDetails($entry->data()));
+                $charge = $this->charge($this->getDetails($entry->data()));
 
                 // if there's a user logged in, store the details
                 if ($user = User::getCurrent())
                 {
-                    $this->charge->updateUser($user, $charge);
+                    $this->updateUser($user, $charge);
                 }
 
                 // get the results ready for display
@@ -85,17 +83,17 @@ class ChargeListener extends Listener
     public function chargeForm($submission)
     {
         // only do something if we're on the right formset
-        if ($submission->formset()->name() === $this->getConfig('charge_formset'))
+        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets')))
         {
             try
             {
                 // get paid
-                $charge = $this->charge->charge($this->charge->getDetails($submission->data()));
+                $charge = $this->charge($this->getDetails($submission->data()));
 
                 // if there's a user logged in, store the details
                 if ($user = User::getCurrent())
                 {
-                    $this->charge->updateUser($user, $charge);
+                    $this->updateUser($user, $charge);
                 }
 
                 // add the charge id to the submission
@@ -125,10 +123,10 @@ class ChargeListener extends Listener
         {
             try
             {
-                $charge = $this->charge->charge($this->charge->getDetails([ 'email' => $user->email() ]));
+                $charge = $this->charge($this->getDetails([ 'email' => $user->email() ]));
 
                 // Add the relevant Stripe details
-                $this->charge->updateUser($user, $charge);
+                $this->updateUser($user, $charge);
 
                 $this->flash->put('details', $charge);
             } catch (\Exception $e)
@@ -163,12 +161,12 @@ class ChargeListener extends Listener
 
     public function cancel()
     {
-        $this->charge->cancel($this->getId());
+        $this->cancel($this->getId());
     }
 
     public function resubscribe()
     {
-        $this->charge->resubscribe($this->getId());
+        $this->resubscribe($this->getId());
     }
 
     /**
@@ -180,5 +178,4 @@ class ChargeListener extends Listener
     {
         return request()->segment(4);
     }
-
 }

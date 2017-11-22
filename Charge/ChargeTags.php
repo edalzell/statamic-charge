@@ -3,18 +3,18 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Plan;
+use Stripe\Stripe;
 use Statamic\API\URL;
 use Statamic\API\Crypt;
 use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
 {
-    /** @var  \Statamic\Addons\Charge\Charge */
-    private $charge;
+    use Charge;
 
     public function init()
     {
-        $this->charge = new Charge;
+        Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
     }
 
     /**
@@ -24,7 +24,12 @@ class ChargeTags extends Tags
      */
     public function data($params = null)
     {
-        return '<input type="hidden" name="' . Charge::PARAM_KEY .'" value="'. Crypt::encrypt($params ?? $this->parameters) .'" />';
+        if (!$params)
+        {
+            $params = $this->parameters;
+        }
+
+        return '<input type="hidden" name="' . self::$param_key .'" value="'. Crypt::encrypt($params) .'" />';
     }
 
     /**
@@ -58,7 +63,7 @@ class ChargeTags extends Tags
     {
         return $this->createForm(
             'update_customer',
-            $this->charge->getSourceDetails($this->getParam('customer_id'))
+            $this->getSourceDetails($this->getParam('customer_id'))
         );
     }
 

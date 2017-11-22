@@ -1,9 +1,8 @@
 fields:
-  charge_formset:
+  charge_formsets:
     type: suggest
     mode: form
-    display: Form
-    max_items: 1
+    display: Forms
     width: 33
   charge_collections:
     type: suggest
@@ -21,22 +20,18 @@ fields:
     instructions: What would you like to call the statuses?
   active:
     type: text
-    validate: required
     default: Active
     width: 25
   canceling:
     type: text
-    validate: required
     default: Canceling
     width: 25
   past_due:
     type: text
-    validate: required
     default: Past Due
     width: 25
   canceled:
     type: text
-    validate: required
     default: Canceled
     width: 25
   roles_section:
@@ -47,14 +42,17 @@ fields:
     display: 'When a user registers and subscribes to a plan, give them a role'
     fields:
       plan:
-        type: text
+        type: suggest
+        mode: charge.stripe_plans
         display: 'Stripe Plan'
         validate: required
+        max_items: 1
         width: 50
       role:
         type: user_roles
-        display: 'Role(s) to add to user'
+        display: 'Role to add to user'
         validate: required
+        max_items: 1
         width: 50
     mode: table
     add_row: Add Plan & Role

@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Log;
+use Stripe\Stripe;
 use Stripe\Customer;
 use Statamic\API\Str;
 use Statamic\API\User;
@@ -14,12 +15,11 @@ use Symfony\Component\Intl\Intl;
 
 class ChargeController extends Controller
 {
-    /** @var  \Statamic\Addons\Charge\Charge */
-    private $charge;
-
+    use Charge;
+    
     public function init()
     {
-        $this->charge = new Charge;
+        Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
     }
 
     /**
@@ -44,29 +44,29 @@ class ChargeController extends Controller
         // get currency symbol
         $currency = Str::upper($this->getConfig('currency', 'usd'));
         $currency_symbol  = Intl::getCurrencyBundle()->getCurrencySymbol($currency);
-        $charges = $this->charge->getCharges();
+        $charges = $this->getCharges();
 
         return $this->view('lists.charges', compact('currency_symbol', 'charges'));
     }
 
     public function subscriptions()
     {
-        return $this->view('lists.subscriptions', ['subscriptions' => $this->charge->getSubscriptions()]);
+        return $this->view('lists.subscriptions', ['subscriptions' => $this->getSubscriptions()]);
     }
 
     public function postProcessPayment()
     {
         try
         {
-            $params = $this->charge->getDetails();
+            $params = $this->getDetails();
 
             // process the payment
-            $charge = $this->charge->charge($params);
+            $charge = $this->charge($params);
 
             // if there's a user logged in, store the details
             if ($user = User::getCurrent())
             {
-                $this->charge->updateUser($user, $charge, true);
+                $this->updateUser($user, $charge, true);
             }
 
             // get the results ready for display
@@ -114,8 +114,8 @@ class ChargeController extends Controller
                         $subscription->plan = $plan;
                         $subscription->save();
 
-                        $this->charge->updateUserRoles($user, $plan);
-                        $this->charge->updateUserSubscription($user, $subscription->__toArray(true));
+                        $this->updateUserRoles($user, $plan);
+                        $this->updateUserSubscription($user, $subscription->__toArray(true));
 
                         $user->save();
                     }
@@ -123,7 +123,7 @@ class ChargeController extends Controller
                     // send 'success' back
                     $this->flash->put('success', true);
 
-                    $params = $this->charge->getDetails();
+                    $params = $this->getDetails();
 
                     $redirect = array_get($params, 'redirect', false);
 
@@ -186,7 +186,7 @@ class ChargeController extends Controller
         }
         elseif ($event['type'] == 'customer.subscription.updated')
         {
-            $this->charge->updateUserSubscription($user, $data);
+            $this->updateUserSubscription($user, $data);
 
             $user->save();
         }
@@ -195,7 +195,7 @@ class ChargeController extends Controller
             $user->set('subscription_status', 'canceled');
 
             // remove the role from the user
-            $this->charge->removeUserRoles($user);
+            $this->removeUserRoles($user);
 
             // store it
             $user->save();
@@ -243,7 +243,12 @@ class ChargeController extends Controller
      */
     private function doAction($action, $id = null)
     {
-        $this->charge->$action($id ?? request()->segment(4));
+        if (!$id)
+        {
+            $id = request()->segment(4);
+        }
+
+        $this->$action($id);
 
         $redirect = request()->query('redirect', false);
 
