@@ -9,14 +9,15 @@ use Statamic\API\Str;
 use Statamic\API\User;
 use Statamic\API\Email;
 use Statamic\API\Config;
-use Stripe\Subscription;
+use Statamic\API\Request;
 use Statamic\Extend\Controller;
 use Symfony\Component\Intl\Intl;
+use Statamic\CP\Publish\ValidationBuilder;
 
 class ChargeController extends Controller
 {
     use Charge;
-    
+
     public function init()
     {
         Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
@@ -60,22 +61,11 @@ class ChargeController extends Controller
         {
             $params = $this->getDetails();
 
-            // process the payment
-            $charge = $this->charge($params);
-
-            // if there's a user logged in, store the details
-            if ($user = User::getCurrent())
-            {
-                $this->updateUser($user, $charge, true);
-            }
-
-            // get the results ready for display
+            // process the payment & send details back
+            $this->flash->put('details', $this->charge($params));
             $this->flash->put('success', true);
-            $this->flash->put('details', $charge);
 
-            $redirect = array_get($params, 'redirect', false);
-
-            return $redirect ? redirect($redirect) : back();
+            return $this->redirectOrBack($params);
         }
         catch (\Stripe\Error\Base $e)
         {
@@ -84,62 +74,59 @@ class ChargeController extends Controller
         }
     }
 
-    public function postUpdateCustomer()
+    /**
+     * Update a user with new data.
+     *
+     * @return \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
+     */
+    public function postUpdateUser()
     {
-        $request = request();
+        if ($user = User::getCurrent()) {
+            $fields = Request::except('_token');
 
-        if ($user = User::getCurrent())
-        {
-            // if theres a stripe token then they're updating the payment info
-            // but also check if the plan is different so that can be updated too
-            $hasToken = $request->has('stripeToken');
-            $plan = $request->get('plan');
-            $diffPlan = $user->get('plan') != $plan;
+            $validator = $this->runValidation($fields, $user->fieldset());
 
-            if ($hasToken || $diffPlan)
-            {
-                try
-                {
-                    // if there's a token we're updating the payment info
-                    if ($hasToken)
-                    {
-                        $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
-                        $customer->source = $request->get('stripeToken'); // obtained with Checkout
-                        $customer->save();
-                    }
-
-                    if ($diffPlan)
-                    {
-                        $subscription = Subscription::retrieve($user->get('subscription_id'));
-                        $subscription->plan = $plan;
-                        $subscription->save();
-
-                        $this->updateUserRoles($user, $plan);
-                        $this->updateUserSubscription($user, $subscription->__toArray(true));
-
-                        $user->save();
-                    }
-
-                    // send 'success' back
-                    $this->flash->put('success', true);
-
-                    $params = $this->getDetails();
-
-                    $redirect = array_get($params, 'redirect', false);
-
-                    return $redirect ? redirect($redirect) : back();
-                }
-                catch(\Stripe\Error\Card $e) {
-                    \Log::error($e->getMessage());
-
-                    // Use the variable $error to save any errors
-                    // To be displayed to the customer later in the page
-                    $body = $e->getJsonBody();
-                    $error  = $body['error'];
-
-                    return back()->withInput()->withErrors($error['message'], 'charge');
-                }
+            if ($validator->fails()) {
+                return back()->withInput()->withErrors($validator);
             }
+
+            $user->data(array_merge($user->data(), $fields));
+            $user->save();
+
+            return $this->postUpdateBilling($user);
+        }
+        else
+        {
+            return back()->withInput()->withErrors('Not logged in', 'charge');
+        }
+    }
+
+    public function postUpdateBilling($user = null)
+    {
+        if (!$user)
+        {
+            $user = User::getCurrent();
+        }
+
+        if ($user)
+        {
+            $result = $this->updateUserBilling($user);
+
+            if (isset($result['success']))
+            {
+                // send 'success' back
+                $this->flash->put('success', true);
+
+                return $this->redirectOrBack($this->getDetails());
+            }
+            else
+            {
+                return back()->withInput()->withErrors($result['error'], 'charge');
+            }
+        }
+        else
+        {
+            return back()->withInput()->withErrors('Not logged in', 'charge');
         }
     }
 
@@ -273,15 +260,26 @@ class ChargeController extends Controller
             ->send();
     }
 
-    /**
-     * @param string $customer_id Stripe Customer ID
-     * @return \Statamic\Contracts\Data\Users\User
-     *
-     */
-    private function whereUser($customer_id)
+    private function redirectOrBack($data)
     {
-        return User::all()->first(function ($id, $user) use ($customer_id) {
-            return $user->get('customer_id') === $customer_id;
-        });
+        $redirect = array_get($data, 'redirect', false);
+
+        return $redirect ? redirect($redirect) : back();
+    }
+
+    /**
+     * Get the Validator instance
+     *
+     * @return mixed
+     */
+    private function runValidation($fields, $fieldset)
+    {
+        $fields = array_merge($fields, ['username' => 'required']);
+
+        $builder = new ValidationBuilder(['fields' => $fields], $fieldset);
+
+        $builder->build();
+
+        return app('validator')->make(['fields' => $fields], $builder->rules());
     }
 }

@@ -3,7 +3,6 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
-use Statamic\API\User;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Illuminate\Support\MessageBag;
@@ -26,6 +25,7 @@ class ChargeListener extends Listener
         'Charge.resubscribe' => 'resubscribe',
         'cp.nav.created'  => 'nav',
         'cp.add_to_head' => 'addToHead',
+        'user.updated' => 'update',
    ];
 
     public function init()
@@ -48,12 +48,6 @@ class ChargeListener extends Listener
             {
                 // get paid
                 $charge = $this->charge($this->getDetails($entry->data()));
-
-                // if there's a user logged in, store the details
-                if ($user = User::getCurrent())
-                {
-                    $this->updateUser($user, $charge);
-                }
 
                 // get the results ready for display
                 $this->flash->put('success', true);
@@ -90,12 +84,6 @@ class ChargeListener extends Listener
                 // get paid
                 $charge = $this->charge($this->getDetails($submission->data()));
 
-                // if there's a user logged in, store the details
-                if ($user = User::getCurrent())
-                {
-                    $this->updateUser($user, $charge);
-                }
-
                 // add the charge id to the submission
                 $submission->set('customer_id', $charge['customer']['id']);
 
@@ -123,10 +111,7 @@ class ChargeListener extends Listener
         {
             try
             {
-                $charge = $this->charge($this->getDetails([ 'email' => $user->email() ]));
-
-                // Add the relevant Stripe details
-                $this->updateUser($user, $charge);
+                $charge = $this->charge($this->getDetails(['email' => $user->email()]), false);
 
                 $this->flash->put('details', $charge);
             } catch (\Exception $e)
@@ -136,6 +121,14 @@ class ChargeListener extends Listener
             }
         }
         return $user;
+    }
+
+    /**
+     * @param \Statamic\Data\Users\User $user
+     */
+    public function update($user)
+    {
+        $this->updateUserBilling($user);
     }
 
     /**

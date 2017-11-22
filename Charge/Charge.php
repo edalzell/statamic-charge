@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Stripe\Refund;
 use Stripe\Customer;
 use Statamic\API\URL;
+use Statamic\API\User;
 use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
@@ -53,7 +54,7 @@ trait Charge
             'amount'   =>$details['amount'] ?: round($details['amount_dollar'] * 100),
             'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
             'receipt_email' => $details['email'],
-            'description' => $details['description']
+            'description' => array_get($details, 'description')
         ))->__toArray(true);
     }
 
@@ -107,7 +108,7 @@ trait Charge
      * @param $details
      * @return array
      */
-    private function getOrCreateCustomer($details)
+    public function getOrCreateCustomer($details)
     {
         /** @var \Stripe\Customer $customer */
         $customer = null;
@@ -120,10 +121,9 @@ trait Charge
             $token = $details['stripeToken'];
         }
 
-        // first see if the customer exists already
-        if ($yaml = $this->storage->getYAML($email))
+        if ($customer_id = $this->getCustomerId($email))
         {
-            $customer = Customer::retrieve($yaml['customer_id']);
+            $customer = Customer::retrieve($customer_id);
 
             // update the payment details
             $customer->source = $token;
@@ -140,12 +140,28 @@ trait Charge
         }
 
         return $customer->__toArray(true);
-     }
+    }
+
+    private function getCustomerId($email)
+    {
+        $yaml = $this->storage->getYAML($email);
+        if ($user = User::email($email))
+        {
+            if (!($id = $user->get('customer_id')))
+            {
+                return array_get($yaml, 'customer_id');
+            }
+
+            return $id;
+        }
+
+        return array_get($yaml, 'customer_id');
+    }
 
     /**
      * @return array|string
      */
-    private function decryptParams()
+    public function decryptParams()
     {
         return request()->has(self::$param_key) ? Crypt::decrypt(request(self::$param_key)) : array();
     }
@@ -175,6 +191,55 @@ trait Charge
         if ($save)
         {
             $user->save();
+        }
+    }
+
+    public function updateUserBilling($user)
+    {
+        $request = request();
+
+        // if there's a stripe token then they're updating the payment info
+        // but also check if the plan is different so that can be updated too
+        $hasToken = $request->has('stripeToken');
+        $plan = $request->get('plan');
+        $diffPlan = $user->get('plan') != $plan;
+
+        if ($hasToken || $diffPlan)
+        {
+            try
+            {
+                // if there's a token we're updating the payment info
+                if ($hasToken)
+                {
+                    $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
+                    $customer->source = $request->get('stripeToken'); // obtained with Checkout
+                    $customer->save();
+                }
+
+                if ($diffPlan)
+                {
+                    $subscription = Subscription::retrieve($user->get('subscription_id'));
+                    $subscription->plan = $plan;
+                    $subscription->save();
+
+                    $this->updateUserRoles($user, $plan);
+                    $this->updateUserSubscription($user, $subscription->__toArray(true));
+
+                    $user->save();
+                }
+
+                return ['success' => true];
+            }
+            catch(\Stripe\Error\Card $e) {
+                \Log::error($e->getMessage());
+
+                // Use the variable $error to save any errors
+                // To be displayed to the customer later in the page
+                $body = $e->getJsonBody();
+                $error  = $body['error'];
+
+                return [ 'error' => $error['message']];
+            }
         }
     }
 

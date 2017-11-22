@@ -4,8 +4,11 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Plan;
 use Stripe\Stripe;
+use Stripe\Customer;
 use Statamic\API\URL;
+use Statamic\API\User;
 use Statamic\API\Crypt;
+use Statamic\API\Request;
 use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
@@ -55,16 +58,52 @@ class ChargeTags extends Tags
     }
 
     /**
-     * The {{ charge:update_payment_form }} tag
+     * The {{ charge:update_customer_form }} tag
      *
      * @return string|array
      */
     public function updateCustomerForm()
     {
+        return $this->updateBillingForm();
+    }
+
+    /**
+     * The {{ charge:update_payment_form }} tag
+     *
+     * @return string|array
+     */
+    public function updateBillingForm()
+    {
         return $this->createForm(
-            'update_customer',
+            'update_billing',
             $this->getSourceDetails($this->getParam('customer_id'))
         );
+    }
+
+    /**
+     * The {{ charge:update_user_form }} tag
+     *
+     * @return string|array
+     */
+    public function updateUserForm()
+    {
+        $user = User::getCurrent();
+        $data = $user->data();
+        $data['username'] = $user->username();
+
+        if ($customer_id = $user->get('customer_id')) {
+            $customer = Customer::retrieve([ 'id' => $customer_id, 'expand' => ['default_source']]);
+
+            /** @var \Stripe\Card $card */
+            $card = $customer->default_source;
+
+            $data['exp_month'] = $card->exp_month;
+            $data['exp_year'] = $card->exp_year;
+            $data['last4'] = $card->last4;
+            $data['address_zip'] = $card->address_zip;
+        }
+
+        return $this->createForm('update_user', $data);
     }
 
     private function createForm($action, $data = [])
@@ -79,7 +118,29 @@ class ChargeTags extends Tags
             $data['errors'] = $this->getErrorBag()->all();
         }
 
-        return $this->formOpen($action) . $this->data() . $this->parse($data) . '</form>';
+        $html = $this->formOpen($action);
+
+        if ($redirect = $this->getRedirectUrl()) {
+            $html .= '<input type="hidden" name="redirect" value="'.$redirect.'" />';
+        }
+
+        return $html . $this->data() . $this->parse($data) . '</form>';
+    }
+
+    /**
+     * Get the redirect URL
+     *
+     * @return string
+     */
+    private function getRedirectUrl()
+    {
+        $return = $this->get('redirect');
+
+        if ($this->getBool('allow_request_redirect')) {
+            $return = Request::input('redirect', $return);
+        }
+
+        return $return;
     }
 
     /**
