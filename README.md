@@ -42,7 +42,7 @@ payment_failed_email_template: email/payment_failed
 3. [User Data](#user-data)
 4. [Payments](#payments)
 
-### <a name="forms"></a>Forms ###
+### <a name="forms">Forms</a> ###
 *NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. I recommend using the [yield](https://docs.statamic.com/tags/yield) and [section](https://docs.statamic.com/tags/section) tags for that.
 
 A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
