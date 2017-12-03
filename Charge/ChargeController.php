@@ -82,7 +82,7 @@ class ChargeController extends Controller
     public function postUpdateUser()
     {
         if ($user = User::getCurrent()) {
-            $fields = Request::except('_token');
+            $fields = Request::except(['_token', '_charge_params']);
 
             $validator = $this->runValidation($fields, $user->fieldset());
 
