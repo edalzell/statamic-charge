@@ -68,9 +68,13 @@ trait Charge
         // charge them
         return Subscription::create([
             'customer' => $details['customer'],
-            'plan' => $details['plan']
+            'items' => [
+                    [
+                        'plan' => $details['plan'],
+                        'quantity' => array_get($details, 'quantity', 1),
+                    ],
+                ]
         ])->__toArray(true);
-
     }
 
     public function resubscribe($id)
