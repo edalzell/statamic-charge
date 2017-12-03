@@ -68,7 +68,7 @@ class ChargeTags extends Tags
     }
 
     /**
-     * The {{ charge:update_payment_form }} tag
+     * The {{ charge:update_billing_form }} tag
      *
      * @return string|array
      */
