@@ -37,6 +37,7 @@ trait Charge
         if (isset($details['plan']))
         {
             $result['subscription'] = $this->subscribe($details);
+            $this->updateUser(User::getCurrent(), $result, true);
         }
         else
         {
@@ -175,7 +176,8 @@ trait Charge
      * Add the subscription data
      *
      * @param \Statamic\Data\Users\User $user
-     * @param array $charge
+     * @param array                     $charge
+     * @param boolean                   $save   save the user?
      *
      */
     public function updateUser($user, $charge, $save = false)
@@ -204,46 +206,41 @@ trait Charge
 
         // if there's a stripe token then they're updating the payment info
         // but also check if the plan is different so that can be updated too
-        $hasToken = $request->has('stripeToken');
-        $plan = $request->get('plan');
-        $diffPlan = $user->get('plan') != $plan;
+        $new_plan = $request->get('plan');
 
-        if ($hasToken || $diffPlan)
+        try
         {
-            try
+            // if there's a token we're updating the payment info
+            if ($request->has('stripeToken'))
             {
-                // if there's a token we're updating the payment info
-                if ($hasToken)
-                {
-                    $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
-                    $customer->source = $request->get('stripeToken'); // obtained with Checkout
-                    $customer->save();
-                }
-
-                if ($diffPlan)
-                {
-                    $subscription = Subscription::retrieve($user->get('subscription_id'));
-                    $subscription->plan = $plan;
-                    $subscription->save();
-
-                    $this->updateUserRoles($user, $plan);
-                    $this->updateUserSubscription($user, $subscription->__toArray(true));
-
-                    $user->save();
-                }
-
-                return ['success' => true];
+                $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
+                $customer->source = $request->get('stripeToken'); // obtained with Checkout
+                $customer->save();
             }
-            catch(\Stripe\Error\Card $e) {
-                \Log::error($e->getMessage());
 
-                // Use the variable $error to save any errors
-                // To be displayed to the customer later in the page
-                $body = $e->getJsonBody();
-                $error  = $body['error'];
+            $subscription = Subscription::retrieve($user->get('subscription_id'));
+            if ($subscription->plan != $new_plan) {
+                $old_plan = $subscription->plan;
+                $subscription->plan = $new_plan;
+                $subscription->save();
 
-                return [ 'error' => $error['message']];
+                $this->updateUserRoles($user, $new_plan, $old_plan);
+                $this->updateUserSubscription($user, $subscription->__toArray(true));
+
+                $user->save();
             }
+
+            return ['success' => true];
+        }
+        catch(\Stripe\Error\Card $e) {
+            \Log::error($e->getMessage());
+
+            // Use the variable $error to save any errors
+            // To be displayed to the customer later in the page
+            $body = $e->getJsonBody();
+            $error  = $body['error'];
+
+            return [ 'error' => $error['message']];
         }
     }
 
@@ -264,23 +261,24 @@ trait Charge
      * @param \Statamic\Data\Users\User $user
      * @param $plan string
      */
-    public function updateUserRoles($user, $plan)
+    public function updateUserRoles($user, $new_plan, $old_plan)
     {
         // if the plan is different
-        if ($user->get('plan') != $plan)
+        if ($user->get('plan') != $new_plan)
         {
-            $this->removeUserRoles($user);
-            $this->addUserRoles($user, $plan);
+            $this->removeUserRoles($user, $old_plan);
+            $this->addUserRoles($user, $new_plan);
         }
     }
     /**
      * @param $user \Statamic\Data\Users\User
+     * @param $plan string
      */
-    public function removeUserRoles($user)
+    public function removeUserRoles($user, $plan)
     {
         // remove the role from the user
         // get the role associated w/ this plan
-        if ($role = $this->getRole($user->get('plan')))
+        if ($role = $this->getRole($plan))
         {
             // remove role from user
             $roles = array_filter($user->get('roles', array()), function($item) use ($role) {

@@ -82,7 +82,7 @@ class ChargeController extends Controller
     public function postUpdateUser()
     {
         if ($user = User::getCurrent()) {
-            $fields = Request::except(['_token', '_charge_params']);
+            $fields = Request::except(['_token', '_charge_params', 'stripeToken']);
 
             $validator = $this->runValidation($fields, $user->fieldset());
 
@@ -90,10 +90,12 @@ class ChargeController extends Controller
                 return back()->withInput()->withErrors($validator);
             }
 
+            $response = $this->postUpdateBilling($user);
+
             $user->data(array_merge($user->data(), $fields));
             $user->save();
 
-            return $this->postUpdateBilling($user);
+            return $response;
         }
         else
         {
@@ -182,7 +184,7 @@ class ChargeController extends Controller
             $user->set('subscription_status', 'canceled');
 
             // remove the role from the user
-            $this->removeUserRoles($user);
+            $this->removeUserRoles($user, $user->get('plan'));
 
             // store it
             $user->save();
