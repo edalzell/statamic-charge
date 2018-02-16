@@ -190,7 +190,7 @@ trait Charge
 
         if (isset($charge['subscription']))
         {
-            $this->addUserRoles($user, $charge['subscription']['plan']['id']);
+            $this->updateUserRoles($user, $charge['subscription']['plan']['id'], $user->get('plan'));
             $this->updateUserSubscription($user, $charge['subscription']);
         }
 
@@ -278,7 +278,7 @@ trait Charge
     {
         // remove the role from the user
         // get the role associated w/ this plan
-        if ($role = $this->getRole($plan))
+        if ($plan && $role = $this->getRole($plan))
         {
             // remove role from user
             $roles = array_filter($user->get('roles', array()), function($item) use ($role) {
