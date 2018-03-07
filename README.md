@@ -1,7 +1,11 @@
+## REQUIREMENTS ##
+
+1. At the moment Charge requires PHP 7.1
+
 ## INSTALLATION ##
 
 1. Copy Charge folder to `site/addons`
-2. Run `php please addons:refresh`
+2. Run `php please update:addons`
 3. Register the webhook w/ Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
 
 ## SETTINGS ##
@@ -37,12 +41,9 @@ payment_failed_email_template: email/payment_failed
 
 ## USAGE ##
 
-1. [Forms](#forms)
-2. [Tags](#tags)
-3. [User Data](#user-data)
-4. [Payments](#payments)
 
-### <a name="forms">Forms</a> ###
+### Forms ###
+
 *NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. I recommend using the [yield](https://docs.statamic.com/tags/yield) and [section](https://docs.statamic.com/tags/section) tags for that.
 
 A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
@@ -289,7 +290,7 @@ For Workshop entry creation, use the same fields/tags as above but add `{{ charg
 
 For a one-time charge, take out the `plan` part and use `{{ charge:data }}` for the amount, etc
 
-### <a name="tags"></a>Tags ###
+### Tags ###
 
 * Cancel - `{{ charge:cancel_subscription_url }}` - creates a URL to cancel a subscription. Pass in the `subscription_id`.
     * example `<a href="{{ charge:cancel_subscription_url :subscription_id="subscription_id }}">Cancel Subscription</a>`
@@ -300,9 +301,10 @@ For a one-time charge, take out the `plan` part and use `{{ charge:data }}` for 
 * Data - `{{ charge:data }}` - to pass transaction data in your form, you can set the parameters (i.e. `amount="50"`)
 * JS - `{{ charge:js }}` - adds the required JS to generate the Stripe token needed
 
-### <a name="user-data"></a>User Data ###
+### User Data ###
 
 The following subscription data is stored in the user:
+
 * `customer_id` - Stripe customer id
 * `created_on` - timestamp indicating when customer was created
 * `plan`: Stripe plan user is subscribed to
@@ -315,7 +317,7 @@ The following subscription data is stored in the user:
     * `canceling` - subscription will not auto-renew at `subscription_end` 
     * `past_due` - payment has failed but subscription not canceled, yet
 
-### <a name="payments"></a>Payments ###
+### Payments ###
 
 #### Payment Failures ####
 
@@ -338,13 +340,15 @@ These variables are available:
 * `last_name`- customer's last name
 
 
-#### Updating Payment Source ####
+#### Updating Billing Information ####
 
-You can have your users update their own payment information. Use the `charge:update_customer_form` tag and pass in the Stripe `custormer_id` as a parameter.
+You can have your users update their own payment information or change which plan they are on. Use the `charge:update_billing_form` tag and pass in the Stripe `custormer_id` as a parameter.
 
 Like the charge, this form requires the `charge:js` tag to be on the page so that the Stripe token can be generated. If you want to redirect after success, pass a `redirect` url.
 
 As w/ the payment form, remember **NOT** to put `name` fields on the CC form inputs so they aren't send to the server at all.
+
+You can also update the Statamic user information by using the `charge:update_user_form`. This allows your users to update their own user & billing/plan information.
 Example:
 
 ```
@@ -409,7 +413,6 @@ Example:
             </fieldset>
     
             <button class="button primary" id="update-payment" data-charge-button>Update</button>
-    
     
         </article>
     
