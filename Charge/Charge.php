@@ -20,12 +20,13 @@ trait Charge
      * Make the appropriate charge, either a one time or a subscription
      *
      * @param array $details   charging details
+     * @param \Statamic\Data\Users\User $user
      *
      * @return array           details of the charge
      */
-    public function charge($details)
+    public function charge($details, $user = null)
     {
-        $result = array();
+        $result = [];
 
         // always make a customer
         /** @var \Stripe\Customer $customer */
@@ -37,7 +38,7 @@ trait Charge
         if (isset($details['plan']))
         {
             $result['subscription'] = $this->subscribe($details);
-            $this->updateUser(User::getCurrent(), $result, true);
+            $this->updateUser($user ?? User::getCurrent(), $result, true);
         }
         else
         {
@@ -50,13 +51,13 @@ trait Charge
     public function oneTimeCharge($details)
     {
         /** @var \Stripe\Charge $charge */
-        return StripeCharge::create(array(
+        return StripeCharge::create([
             'customer' => $details['customer'],
             'amount'   =>$details['amount'] ?: round($details['amount_dollar'] * 100),
             'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
             'receipt_email' => $details['email'],
             'description' => array_get($details, 'description')
-        ))->__toArray(true);
+        ])->__toArray(true);
     }
 
     /**
@@ -74,7 +75,8 @@ trait Charge
                         'plan' => $details['plan'],
                         'quantity' => array_get($details, 'quantity', 1),
                     ],
-                ]
+                ],
+            'coupon' => array_get($details, 'coupon')
         ])->__toArray(true);
     }
 
@@ -168,7 +170,7 @@ trait Charge
      */
     public function decryptParams()
     {
-        return request()->has(self::$param_key) ? Crypt::decrypt(request(self::$param_key)) : array();
+        return request()->has(self::$param_key) ? Crypt::decrypt(request(self::$param_key)) : [];
     }
 
 
@@ -281,7 +283,7 @@ trait Charge
         if ($plan && $role = $this->getRole($plan))
         {
             // remove role from user
-            $roles = array_filter($user->get('roles', array()), function($item) use ($role) {
+            $roles = array_filter($user->get('roles', []), function($item) use ($role) {
                 return $item != $role;
             });
 
@@ -298,7 +300,7 @@ trait Charge
         if ($role = $this->getRole($plan))
         {
             // get the user's roles
-            $roles = $user->get('roles', array());
+            $roles = $user->get('roles', []);
 
             // add the role id to the roles
             $roles[] = $role;
@@ -359,7 +361,7 @@ trait Charge
      * @param $data array
      * @return array
      */
-    public function getDetails($data = array())
+    public function getDetails($data = [])
     {
         // gotta merge the email stuff so there's just one
         $data = array_merge(
@@ -375,7 +377,7 @@ trait Charge
 
     public function getRole($plan)
     {
-        $plan_role = collect($this->getConfig('plans_and_roles', array()))->first(function($ignored, $data) use ($plan) {
+        $plan_role = collect($this->getConfig('plans_and_roles', []))->first(function($ignored, $data) use ($plan) {
             return $plan == array_get($data, 'plan');
         });
 
@@ -388,7 +390,7 @@ trait Charge
             'id' => $customer_id,
             'expand' => ['default_source']]);
 
-        return $customer->default_source ? $customer->default_source->__toArray(true) : array();
+        return $customer->default_source ? $customer->default_source->__toArray(true) : [];
     }
 
 
