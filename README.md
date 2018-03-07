@@ -1,6 +1,6 @@
 ## REQUIREMENTS ##
 
-1. At the moment Charge requires PHP 7.1
+1. Charge requires PHP 7.1
 
 ## INSTALLATION ##
 
@@ -63,6 +63,7 @@ Charge Form, `{{ charge:payment_form }}`
 
 * for a one-time charge pass in the `amount` (in cents), `description`, and optionally the `currency` as parameters on the tag
 * for a subscription, have a `plan` field in your form with the Stripe Plan
+  * if you want to discount the subscription, send a `coupon` value. See [Stripe's documentation](https://stripe.com/docs/subscriptions/discounts) for setting up discounts.
 * if you want to redirect the customer after the charge, use a `redirect` parameter
 * inside the tag, `success`, `errors` and `details` are available as variables
 * outside the tag use `{{ charge:success }}`, `{{ charge:errors }}` and `{{ charge:details }}` instead.
@@ -73,6 +74,7 @@ Statamic Form, `{{ form:create }}`
     * `stripeEmail` or `email` - email of customer
 * for a one-time charge, somewhere in your form you need to set the `description`, `amount` (in cents) or `amount_dollars` (like 23.45), and optionally `currency` via `{{ charge:data }}` or a form field
 * for a subscription, include a `plan` field along with the above email field. Neither `currency`, `amount` nor `description` are needed for subscriptions
+  * if you want to discount the subscription, send a `coupon` value. See [Stripe's documentation](https://stripe.com/docs/subscriptions/discounts) for setting up discounts.
 * the `customer_id` is available in the `submission` data
 * please note the `data-*` attributes on the form items. Those are required.
 * use the standard `success` and `error` variables.
