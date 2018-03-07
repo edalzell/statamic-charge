@@ -77,7 +77,7 @@ class ChargeListener extends Listener
     public function chargeForm($submission)
     {
         // only do something if we're on the right formset
-        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets')))
+        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets', [])))
         {
             try
             {
@@ -92,7 +92,7 @@ class ChargeListener extends Listener
             catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
-                return array('errors' => array($e->getMessage()));
+                return ['errors' => [$e->getMessage()]];
             }
         }
 
@@ -111,13 +111,13 @@ class ChargeListener extends Listener
         {
             try
             {
-                $charge = $this->charge($this->getDetails(['email' => $user->email()]), false);
+                $charge = $this->charge($this->getDetails(['email' => $user->email()]), $user);
 
                 $this->flash->put('details', $charge);
             } catch (\Exception $e)
             {
                 \Log::error($e->getMessage());
-                return array('errors' => array($e->getMessage()));
+                return ['errors' => [$e->getMessage()]];
             }
         }
         return $user;
