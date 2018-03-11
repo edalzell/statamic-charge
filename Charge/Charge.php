@@ -222,7 +222,7 @@ trait Charge
 
             $subscription = Subscription::retrieve($user->get('subscription_id'));
             if ($subscription->plan != $new_plan) {
-                $old_plan = $subscription->plan;
+                $old_plan = $subscription->plan->id;
                 $subscription->plan = $new_plan;
                 $subscription->save();
 
