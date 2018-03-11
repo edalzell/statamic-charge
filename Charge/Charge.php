@@ -384,13 +384,18 @@ trait Charge
         return $plan_role ? $plan_role['role'][0] : null;
     }
 
+    /**
+     * @param $customer_id
+     *
+     * @return array
+     */
     public function getSourceDetails($customer_id)
     {
         $customer = Customer::retrieve([
             'id' => $customer_id,
             'expand' => ['default_source']]);
 
-        return $customer->default_source ? $customer->default_source->__toArray(true) : [];
+        return ($customer && $customer->default_source) ? $customer->default_source->__toArray(true) : [];
     }
 
 
