@@ -184,6 +184,11 @@ trait Charge
      */
     public function updateUser($user, $charge, $save = false)
     {
+        // in the weird case there's no user, don't do nuthin'
+        if (!$user) {
+            return;
+        }
+
         // add the customer_id to the user
         $user->set('customer_id', $charge['customer']['id']);
 
@@ -366,7 +371,15 @@ trait Charge
         // gotta merge the email stuff so there's just one
         $data = array_merge(
             $data,
-            request()->only(['stripeEmail', 'stripeToken', 'plan', 'amount', 'amount_dollar', 'email']),
+            request()->only([
+                'stripeEmail',
+                'stripeToken',
+                'plan',
+                'amount',
+                'amount_dollar',
+                'email',
+                'coupon',
+                                ]),
             $this->decryptParams());
 
         // if `stripeEmail` is there, use that, otherwise, use `email`
