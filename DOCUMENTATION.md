@@ -61,7 +61,7 @@ There are four ways to use it:
 
 Charge Form, `{{ charge:payment_form }}`
 
-* for a one-time charge pass in the `amount` (in cents), `description`, and optionally the `currency` as parameters on the tag
+* for a one-time charge pass in the `amount` (in cents), or `amount_dollar` (in decimal), `description`, and optionally the `currency` as parameters on the tag
 * for a subscription, have a `plan` field in your form with the Stripe Plan
   * if you want to discount the subscription, send a `coupon` value. See [Stripe's documentation](https://stripe.com/docs/subscriptions/discounts) for setting up discounts.
 * if you want to redirect the customer after the charge, use a `redirect` parameter
