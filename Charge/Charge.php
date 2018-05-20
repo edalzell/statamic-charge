@@ -3,18 +3,18 @@
 namespace Statamic\Addons\Charge;
 
 use Carbon\Carbon;
-use Stripe\Refund;
-use Stripe\Customer;
+use Statamic\API\Config;
+use Statamic\API\Crypt;
 use Statamic\API\URL;
 use Statamic\API\User;
-use Statamic\API\Crypt;
-use Statamic\API\Config;
-use Stripe\Subscription;
 use Stripe\Charge as StripeCharge;
+use Stripe\Customer;
+use Stripe\Refund;
+use Stripe\Subscription;
 
 trait Charge
 {
-    static $param_key = "_charge_params";
+    public static $param_key = '_charge_params';
 
     /**
      * Make the appropriate charge, either a one time or a subscription
@@ -35,13 +35,10 @@ trait Charge
         $details['customer'] = $customer['id'];
 
         // is this a subscription?
-        if (isset($details['plan']))
-        {
+        if (isset($details['plan'])) {
             $result['subscription'] = $this->subscribe($details);
             $this->updateUser($user ?? User::getCurrent(), $result, true);
-        }
-        else
-        {
+        } else {
             $result['charge'] = $this->oneTimeCharge($details);
         }
 
@@ -53,10 +50,10 @@ trait Charge
         /** @var \Stripe\Charge $charge */
         return StripeCharge::create([
             'customer' => $details['customer'],
-            'amount'   =>$details['amount'] ?: round($details['amount_dollar'] * 100),
+            'amount' => $details['amount'] ?: round($details['amount_dollar'] * 100),
             'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
             'receipt_email' => $details['email'],
-            'description' => array_get($details, 'description')
+            'description' => array_get($details, 'description'),
         ])->__toArray(true);
     }
 
@@ -71,12 +68,12 @@ trait Charge
         return Subscription::create([
             'customer' => $details['customer'],
             'items' => [
-                    [
-                        'plan' => $details['plan'],
-                        'quantity' => array_get($details, 'quantity', 1),
-                    ],
+                [
+                    'plan' => $details['plan'],
+                    'quantity' => array_get($details, 'quantity', 1),
                 ],
-            'coupon' => array_get($details, 'coupon')
+            ],
+            'coupon' => array_get($details, 'coupon'),
         ])->__toArray(true);
     }
 
@@ -97,7 +94,7 @@ trait Charge
      */
     public function refund($id)
     {
-        return Refund::create(["charge" => $id]);
+        return Refund::create(['charge' => $id]);
     }
 
     /**
@@ -123,24 +120,20 @@ trait Charge
 
         $email = $details['email'];
 
-        if (isset($details['stripeToken']))
-        {
+        if (isset($details['stripeToken'])) {
             $token = $details['stripeToken'];
         }
 
-        if ($customer_id = $this->getCustomerId($email))
-        {
+        if ($customer_id = $this->getCustomerId($email)) {
             $customer = Customer::retrieve($customer_id);
 
             // update the payment details
             $customer->source = $token;
             $customer->save();
-        }
-        else
-        {
+        } else {
             $customer = Customer::create([
-                "email" => $email,
-                "source" => $token,
+                'email' => $email,
+                'source' => $token,
             ]);
 
             $this->storage->putYAML($email, ['customer_id' => $customer->id]);
@@ -152,10 +145,8 @@ trait Charge
     private function getCustomerId($email)
     {
         $yaml = $this->storage->getYAML($email);
-        if ($user = User::email($email))
-        {
-            if (!($id = $user->get('customer_id')))
-            {
+        if ($user = User::email($email)) {
+            if (!($id = $user->get('customer_id'))) {
                 return array_get($yaml, 'customer_id');
             }
 
@@ -172,7 +163,6 @@ trait Charge
     {
         return request()->has(self::$param_key) ? Crypt::decrypt(request(self::$param_key)) : [];
     }
-
 
     /**
      * Add the subscription data
@@ -195,14 +185,12 @@ trait Charge
         // add the creation date
         $user->set('created_on', time());
 
-        if (isset($charge['subscription']))
-        {
+        if (isset($charge['subscription'])) {
             $this->updateUserRoles($user, $charge['subscription']['plan']['id'], $user->get('plan'));
             $this->updateUserSubscription($user, $charge['subscription']);
         }
 
-        if ($save)
-        {
+        if ($save) {
             $user->save();
         }
     }
@@ -215,11 +203,9 @@ trait Charge
         // but also check if the plan is different so that can be updated too
         $new_plan = $request->get('plan');
 
-        try
-        {
+        try {
             // if there's a token we're updating the payment info
-            if ($request->has('stripeToken'))
-            {
+            if ($request->has('stripeToken')) {
                 $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
                 $customer->source = $request->get('stripeToken'); // obtained with Checkout
                 $customer->save();
@@ -238,16 +224,15 @@ trait Charge
             }
 
             return ['success' => true];
-        }
-        catch(\Stripe\Error\Card $e) {
+        } catch (\Stripe\Error\Card $e) {
             \Log::error($e->getMessage());
 
             // Use the variable $error to save any errors
             // To be displayed to the customer later in the page
             $body = $e->getJsonBody();
-            $error  = $body['error'];
+            $error = $body['error'];
 
-            return [ 'error' => $error['message']];
+            return ['error' => $error['message']];
         }
     }
 
@@ -271,12 +256,12 @@ trait Charge
     public function updateUserRoles($user, $new_plan, $old_plan)
     {
         // if the plan is different
-        if ($user->get('plan') != $new_plan)
-        {
+        if ($user->get('plan') != $new_plan) {
             $this->removeUserRoles($user, $old_plan);
             $this->addUserRoles($user, $new_plan);
         }
     }
+
     /**
      * @param $user \Statamic\Data\Users\User
      * @param $plan string
@@ -285,10 +270,9 @@ trait Charge
     {
         // remove the role from the user
         // get the role associated w/ this plan
-        if ($plan && $role = $this->getRole($plan))
-        {
+        if ($plan && $role = $this->getRole($plan)) {
             // remove role from user
-            $roles = array_filter($user->get('roles', []), function($item) use ($role) {
+            $roles = array_filter($user->get('roles', []), function ($item) use ($role) {
                 return $item != $role;
             });
 
@@ -302,8 +286,7 @@ trait Charge
      */
     public function addUserRoles($user, $plan)
     {
-        if ($role = $this->getRole($plan))
-        {
+        if ($role = $this->getRole($plan)) {
             // get the user's roles
             $roles = $user->get('roles', []);
 
@@ -327,7 +310,7 @@ trait Charge
 
     public function getCharges()
     {
-        $charges = StripeCharge::all(['limit'=>100])->__toArray(true);
+        $charges = StripeCharge::all(['limit' => 100])->__toArray(true);
 
         // only want the ones that have NOT been refunded
         return collect($charges['data'])->filter(function ($charge) {
@@ -344,7 +327,7 @@ trait Charge
     {
         $subscriptions = Subscription::all([
             'limit' => 100,
-            'expand' => ['data.customer']
+            'expand' => ['data.customer'],
         ])->__toArray(true);
 
         return collect($subscriptions['data'])->map(function ($subscription) {
@@ -355,7 +338,7 @@ trait Charge
                 'plan' => $subscription['plan']['name'],
                 'amount' => $subscription['plan']['amount'],
                 'auto_renew' => !$subscription['cancel_at_period_end'],
-                'has_subscription' => true
+                'has_subscription' => true,
             ];
         })->toArray();
     }
@@ -379,8 +362,9 @@ trait Charge
                 'amount_dollar',
                 'email',
                 'coupon',
-                                ]),
-            $this->decryptParams());
+            ]),
+            $this->decryptParams()
+        );
 
         // if `stripeEmail` is there, use that, otherwise, use `email`
         $data['email'] = $data['stripeEmail'] ?: $data['email'];
@@ -390,7 +374,7 @@ trait Charge
 
     public function getRole($plan)
     {
-        $plan_role = collect($this->getConfig('plans_and_roles', []))->first(function($ignored, $data) use ($plan) {
+        $plan_role = collect($this->getConfig('plans_and_roles', []))->first(function ($ignored, $data) use ($plan) {
             return $plan == array_get($data, 'plan');
         });
 
@@ -410,7 +394,6 @@ trait Charge
 
         return ($customer && $customer->default_source) ? $customer->default_source->__toArray(true) : [];
     }
-
 
     /**
      * Return the proper action link, based on if the subscription is set to auto-renew
