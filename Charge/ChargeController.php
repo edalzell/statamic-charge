@@ -2,22 +2,24 @@
 
 namespace Statamic\Addons\Charge;
 
-use Log;
-use Stripe\Stripe;
-use Stripe\Customer;
+use Statamic\API\Config;
+use Statamic\API\Email;
+use Statamic\API\Request;
 use Statamic\API\Str;
 use Statamic\API\User;
-use Statamic\API\Email;
-use Statamic\API\Config;
-use Statamic\API\Request;
-use Statamic\Extend\Controller;
-use Symfony\Component\Intl\Intl;
 use Statamic\CP\Publish\ValidationBuilder;
+use Statamic\Extend\Controller;
+use Stripe\Customer;
+use Stripe\Error\Authentication;
+use Stripe\Stripe;
+use Symfony\Component\Intl\Intl;
 
-class ChargeController extends Controller {
+class ChargeController extends Controller
+{
     use Charge;
 
-    public function init() {
+    public function init()
+    {
         Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
     }
 
@@ -26,17 +28,24 @@ class ChargeController extends Controller {
      *
      * @return \Illuminate\Http\Response
      */
-    public function index() {
+    public function index()
+    {
         return response()->redirectToRoute('lists.customers');
     }
 
-    public function customers() {
-        $customers = Customer::all(['limit' => 100])->__toArray(true);
+    public function customers()
+    {
+        try {
+            $customers = Customer::all(['limit' => 100])->__toArray(true);
 
-        return $this->view('lists.customers', ['customers' => $customers['data']]);
+            return $this->view('lists.customers', ['customers' => $customers['data']]);
+        } catch (Authentication $e) {
+            return $this->view('lists.customers', ['derp' => 'Please set your <a href="https://dashboard.stripe.com/account/apikeys">STRIPE_SECRET_KEY</a> in your .env file']);
+        }
     }
 
-    public function charges() {
+    public function charges()
+    {
         // get currency symbol
         $currency = Str::upper($this->getConfig('currency', 'usd'));
         $currency_symbol = Intl::getCurrencyBundle()->getCurrencySymbol($currency);
@@ -45,11 +54,13 @@ class ChargeController extends Controller {
         return $this->view('lists.charges', compact('currency_symbol', 'charges'));
     }
 
-    public function subscriptions() {
+    public function subscriptions()
+    {
         return $this->view('lists.subscriptions', ['subscriptions' => $this->getSubscriptions()]);
     }
 
-    public function postProcessPayment() {
+    public function postProcessPayment()
+    {
         try {
             $params = $this->getDetails();
 
@@ -70,7 +81,8 @@ class ChargeController extends Controller {
      *
      * @return \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
      */
-    public function postUpdateUser() {
+    public function postUpdateUser()
+    {
         if ($user = User::getCurrent()) {
             $fields = Request::except(['_token', '_charge_params', 'stripeToken']);
 
@@ -91,7 +103,8 @@ class ChargeController extends Controller {
         }
     }
 
-    public function postUpdateBilling($user = null) {
+    public function postUpdateBilling($user = null)
+    {
         if (!$user) {
             $user = User::getCurrent();
         }
@@ -117,7 +130,8 @@ class ChargeController extends Controller {
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function postWebhook() {
+    public function postWebhook()
+    {
         $event = request()->json()->all();
         $data = $event['data']['object'];
 
@@ -141,12 +155,13 @@ class ChargeController extends Controller {
                 $user,
                 'payment_failed_email_template',
                 [
-                    'plan'                 => $user->get('plan'),
-                    'first_name'           => $user->get('first_name'),
-                    'last_name'            => $user->get('last_name'),
-                    'attempt_count'        => $data['attempt_count'],
+                    'plan' => $user->get('plan'),
+                    'first_name' => $user->get('first_name'),
+                    'last_name' => $user->get('last_name'),
+                    'attempt_count' => $data['attempt_count'],
                     'next_payment_attempt' => $data['next_payment_attempt'],
-                ]);
+                ]
+            );
         } elseif ($event['type'] == 'customer.subscription.updated') {
             $this->updateUserSubscription($user, $data);
 
@@ -164,9 +179,9 @@ class ChargeController extends Controller {
                 $user,
                 'canceled_email_template',
                 [
-                    'plan'       => $user->get('plan'),
+                    'plan' => $user->get('plan'),
                     'first_name' => $user->get('first_name'),
-                    'last_name'  => $user->get('last_name'),
+                    'last_name' => $user->get('last_name'),
                 ]
             );
         }
@@ -177,28 +192,32 @@ class ChargeController extends Controller {
     /**
      * Cancel a subscription
      */
-    public function getCancel($subscription_id = null) {
+    public function getCancel($subscription_id = null)
+    {
         return $this->doAction('cancel', $subscription_id);
     }
 
     /**
      * Resubscribe to a subscription
      */
-    public function getResubscribe($subscription_id = null) {
+    public function getResubscribe($subscription_id = null)
+    {
         return $this->doAction('resubscribe', $subscription_id);
     }
 
     /**
      * Refund a charge
      */
-    public function getRefund($charge_id = null) {
+    public function getRefund($charge_id = null)
+    {
         return $this->doAction('refund', $charge_id);
     }
 
     /**
      * Perform an action then redirect if required
      */
-    private function doAction($action, $id = null) {
+    private function doAction($action, $id = null)
+    {
         if (!$id) {
             $id = request()->segment(4);
         }
@@ -218,7 +237,8 @@ class ChargeController extends Controller {
      * @param $template string
      * @param $data     array
      */
-    private function sendEmail($user, $template, $data) {
+    private function sendEmail($user, $template, $data)
+    {
         Email::to($user->email())
             ->from($this->getConfig('from_email'))
             ->in('site/themes/' . Config::getThemeName() . '/templates')
@@ -232,13 +252,15 @@ class ChargeController extends Controller {
      *
      * @return \Statamic\Contracts\Data\Users\User
      */
-    private function whereUser($customer_id) {
+    private function whereUser($customer_id)
+    {
         return User::all()->first(function ($id, $user) use ($customer_id) {
             return $user->get('customer_id') === $customer_id;
         });
     }
 
-    private function redirectOrBack($data) {
+    private function redirectOrBack($data)
+    {
         $redirect = array_get($data, 'redirect', false);
 
         return $redirect ? redirect($redirect) : back();
@@ -249,7 +271,8 @@ class ChargeController extends Controller {
      *
      * @return mixed
      */
-    private function runValidation($fields, $fieldset) {
+    private function runValidation($fields, $fieldset)
+    {
         $fields = array_merge($fields, ['username' => 'required']);
 
         $builder = new ValidationBuilder(['fields' => $fields], $fieldset);
