@@ -61,7 +61,7 @@ fields:
     display: Email Setting
   from_email:
     type: text
-    width 33
+    width: 33
   canceled_email_template:
     type: template
     width: 33
