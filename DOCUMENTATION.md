@@ -18,7 +18,7 @@
     * `plan` & `role` - when a customer signs for a plan, which role(s) should they have
     * `from_email` - when the payment failed emails go out, what email account do they come from
     * `canceled_email_template` & `payment_failed_email_template` - email templates to use for the failed payment emails
-* in your `.env` file, which MUST NOT be checked in:
+* in your [`.env` file](https://docs.statamic.com/environments#the-env-file), which MUST NOT be checked in:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
     * `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
     * `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
