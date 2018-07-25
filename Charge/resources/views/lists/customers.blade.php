@@ -1,7 +1,7 @@
 @extends('layout')
 
 @section('content')
-    @if ($derp)
+    @if (isset($derp))
         {!! $derp !!}
     @else
         @include('Charge::partials.tabs')
