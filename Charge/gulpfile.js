@@ -9,7 +9,7 @@ elixir(function (mix) {
 });
 
 gulp.task('release', function() {
-   return gulp.src(['../**/*', '!./node_modules/', '!./node_modules/**', '!../.git', '!../.idea', '!./*.zip'])
+   return gulp.src(['../**/*', '!./node_modules/', '!./node_modules/**', '!../.git', '!../.idea', '!./*.zip', '!../.vscode'])
        .pipe(zip('charge.zip'))
        .pipe(gulp.dest('../'));
 });
