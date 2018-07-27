@@ -2,17 +2,18 @@
 
 namespace Statamic\Addons\Charge;
 
-use Statamic\API\Config;
-use Statamic\API\Email;
-use Statamic\API\Request;
+use Stripe\Stripe;
+use Stripe\Webhook;
+use Stripe\Customer;
 use Statamic\API\Str;
 use Statamic\API\User;
-use Statamic\CP\Publish\ValidationBuilder;
+use Statamic\API\Email;
+use Statamic\API\Config;
+use Statamic\API\Request;
 use Statamic\Extend\Controller;
-use Stripe\Customer;
 use Stripe\Error\Authentication;
-use Stripe\Stripe;
 use Symfony\Component\Intl\Intl;
+use Statamic\CP\Publish\ValidationBuilder;
 
 class ChargeController extends Controller
 {
@@ -33,17 +34,31 @@ class ChargeController extends Controller
         return response()->redirectToRoute('lists.customers');
     }
 
+    /**
+     * Show all the customers
+     *
+     * @return \Illuminate\View\View
+     */
     public function customers()
     {
+        $data = null;
+
         try {
             $customers = Customer::all(['limit' => 100])->__toArray(true);
 
-            return $this->view('lists.customers', ['customers' => $customers['data']]);
+            $data = ['customers' => $customers['data']];
         } catch (Authentication $e) {
-            return $this->view('lists.customers', ['derp' => 'Please set your <a href="https://dashboard.stripe.com/account/apikeys">STRIPE_SECRET_KEY</a> in your .env file']);
+            $data = ['derp' => 'Please set your <a href="https://dashboard.stripe.com/account/apikeys">STRIPE_SECRET_KEY</a> in your .env file'];
         }
+
+        return $this->view('lists.customers', $data);
     }
 
+    /**
+     * Show all the charges
+     *
+     * @return \Illuminate\View\View
+     */
     public function charges()
     {
         // get currency symbol
@@ -54,9 +69,19 @@ class ChargeController extends Controller
         return $this->view('lists.charges', compact('currency_symbol', 'charges'));
     }
 
+    /**
+     * Show all the subscriptions
+     *
+     * @return \Illuminate\View\View
+     */
     public function subscriptions()
     {
-        return $this->view('lists.subscriptions', ['subscriptions' => $this->getSubscriptions()]);
+        return $this->view(
+            'lists.subscriptions',
+            [
+                'subscriptions' => $this->getSubscriptions(),
+            ]
+        );
     }
 
     public function postProcessPayment()
@@ -130,24 +155,39 @@ class ChargeController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function postWebhook()
+    public function postWebhook(\Illuminate\Http\Request $request)
     {
-        $event = request()->json()->all();
-        $data = $event['data']['object'];
+        $event = null;
+        // verify the events
+        try {
+            $event = Webhook::constructEvent(
+                $request->getContent(),
+                $request->header('Stripe-Signature'),
+                env('STRIPE_ENDPOINT_SECRET')
+            );
+        } catch (\UnexpectedValueException $e) {
+            // Invalid payload
+            return response('Invalid payload', 400);
+        } catch (\Stripe\Error\SignatureVerification $e) {
+            // Invalid signature
+            return response('Invalid signature', 400);
+        }
+
+        $data = $event->data->object;
 
         // find the right user (w/ the matching Stripe Customer ID)
         /** @var \Statamic\Data\Users\User $user */
-        if (!($user = $this->whereUser(array_get($data, 'customer')))) {
+        if (!($user = $this->whereUser($data->customer))) {
             return response('No User Found');
         }
 
-        if ($event['type'] == 'invoice.payment_succeeded') {
+        if ($event->type === 'invoice.payment_succeeded') {
             // update the subscription dates and status
-            $user->set('subscription_start', $data['period_start'])
-                ->set('subscription_end', $data['period_end'])
+            $user->set('subscription_start', $data->period_start)
+                ->set('subscription_end', $data->period_end)
                 ->set('subscription_status', 'active')
                 ->save();
-        } elseif (($event['type'] == 'invoice.payment_failed') && ($data['next_payment_attempt'])) {
+        } elseif (($event->type === 'invoice.payment_failed') && ($data->next_payment_attempt)) {
             $user->set('subscription_status', 'past_due');
             $user->save();
 
@@ -158,15 +198,15 @@ class ChargeController extends Controller
                     'plan' => $user->get('plan'),
                     'first_name' => $user->get('first_name'),
                     'last_name' => $user->get('last_name'),
-                    'attempt_count' => $data['attempt_count'],
-                    'next_payment_attempt' => $data['next_payment_attempt'],
+                    'attempt_count' => $data->attempt_count,
+                    'next_payment_attempt' => $data->next_payment_attempt,
                 ]
             );
-        } elseif ($event['type'] == 'customer.subscription.updated') {
-            $this->updateUserSubscription($user, $data);
+        } elseif ($event->type === 'customer.subscription.updated') {
+            $this->updateUserSubscription($user, $data->__toArray());
 
             $user->save();
-        } elseif ($event['type'] == 'customer.subscription.deleted') {
+        } elseif ($event->type === 'customer.subscription.deleted') {
             $user->set('subscription_status', 'canceled');
 
             // remove the role from the user
