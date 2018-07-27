@@ -3,14 +3,14 @@
 namespace Statamic\Addons\Charge;
 
 use Carbon\Carbon;
-use Statamic\API\Config;
-use Statamic\API\Crypt;
+use Stripe\Refund;
+use Stripe\Customer;
 use Statamic\API\URL;
 use Statamic\API\User;
-use Stripe\Charge as StripeCharge;
-use Stripe\Customer;
-use Stripe\Refund;
+use Statamic\API\Crypt;
+use Statamic\API\Config;
 use Stripe\Subscription;
+use Stripe\Charge as StripeCharge;
 
 trait Charge
 {
@@ -246,7 +246,13 @@ trait Charge
         $user->set('subscription_id', $subscription['id']);
         $user->set('subscription_start', $subscription['current_period_start']);
         $user->set('subscription_end', $subscription['current_period_end']);
-        $user->set('subscription_status', 'active');
+
+        // if the subscription is canceled at period end, manually set the status
+        if (array_get($subscription, 'cancel_at_period_end', false)) {
+            $user->set('subscription_status', 'canceling');
+        } else {
+            $user->set('subscription_status', $subscription['status']);
+        }
     }
 
     /**
@@ -327,20 +333,23 @@ trait Charge
     {
         $subscriptions = Subscription::all([
             'limit' => 100,
-            'expand' => ['data.customer'],
+            'expand' => ['data.customer', 'data.plan', 'data.plan.product'],
         ])->__toArray(true);
 
-        return collect($subscriptions['data'])->map(function ($subscription) {
-            return [
-                'id' => $subscription['id'],
-                'email' => $subscription['customer']['email'],
-                'expiry_date' => $subscription['current_period_end'],
-                'plan' => $subscription['plan']['name'],
-                'amount' => $subscription['plan']['amount'],
-                'auto_renew' => !$subscription['cancel_at_period_end'],
-                'has_subscription' => true,
-            ];
-        })->toArray();
+        return collect($subscriptions['data'])
+            ->reject(function ($subscription) {
+                return array_get($subscription['plan']['product'], 'deleted', false);
+            })->map(function ($subscription) {
+                return [
+                    'id' => $subscription['id'],
+                    'email' => $subscription['customer']['email'],
+                    'expiry_date' => $subscription['current_period_end'],
+                    'plan' => $subscription['plan']['product']['name'],
+                    'amount' => $subscription['plan']['amount'],
+                    'auto_renew' => !$subscription['cancel_at_period_end'],
+                    'has_subscription' => true,
+                ];
+            })->toArray();
     }
 
     /**
