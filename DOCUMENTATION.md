@@ -1,6 +1,6 @@
 ## REQUIREMENTS ##
 
-1. Charge requires PHP 7.1
+1. Charge requires PHP 7.1+
 
 ## INSTALLATION ##
 
