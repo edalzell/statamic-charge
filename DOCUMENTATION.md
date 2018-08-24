@@ -6,7 +6,7 @@
 
 1. Copy Charge folder to `site/addons`
 2. Run `php please update:addons`
-3. Register the webhook w/ Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
+3. If you're going to use subscriptions, register the webhook w/ Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
 
 ## SETTINGS ##
 
@@ -20,8 +20,10 @@
     * `canceled_email_template` & `payment_failed_email_template` - email templates to use for the failed payment emails
 * in your [`.env` file](https://docs.statamic.com/environments#the-env-file), which MUST NOT be checked in:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
-    * `STRIPE_SECRET_KEY` - your stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
-    * `STRIPE_PUBLIC_KEY` - your stripe public key, found here: https://dashboard.stripe.com/account/apikeys
+    * `STRIPE_SECRET_KEY` - Stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
+    * `STRIPE_PUBLIC_KEY` - Stripe public key, found here: https://dashboard.stripe.com/account/apikeys
+    * `STRIPE_ENDPOINT_SECRET` - Webhook signing secret, found here: https://dashboard.stripe.com/webhooks (click on the Charge webhook then "Click to reveal")
+      * NOTE: not needed if you didn't register your webhook, i.e. are **not** using subscriptions
 
 #### Example settings ####
 ```
