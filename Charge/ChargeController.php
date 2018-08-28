@@ -17,7 +17,7 @@ use Statamic\CP\Publish\ValidationBuilder;
 
 class ChargeController extends Controller
 {
-    use Charge;
+    use Billing;
 
     public function init()
     {

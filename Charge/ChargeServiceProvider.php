@@ -23,10 +23,10 @@ class ChargeServiceProvider extends ServiceProvider
     {
         // Global addon variables
         $addon = [
-            'timezone'    => Config::get('system.timezone'),
-            'version'     => $this->getMeta()['version'],
-            'addon_name'  => $this->getAddonName(),
-            'cp_path'     => CP_ROUTE
+            'timezone' => Config::get('system.timezone'),
+            'version' => $this->getMeta()['version'],
+            'addon_name' => $this->getAddonName(),
+            'cp_path' => CP_ROUTE
         ];
 
         view()->share('charge', $addon);

@@ -5,11 +5,11 @@ namespace Statamic\Addons\Charge\Commands;
 use Stripe\Customer;
 use Statamic\API\User;
 use Statamic\Extend\Command;
-use Statamic\Addons\Charge\Charge;
+use Statamic\Addons\Charge\Billing;
 
 class AddSubscriptionsCommand extends Command
 {
-    use Charge;
+    use Billing;
 
     /**
      * The name and signature of the console command.
@@ -49,13 +49,13 @@ class AddSubscriptionsCommand extends Command
         do {
             $results = Customer::all(['limit' => 100, 'starting_after' => $starting_after])->__toArray(true);
 
-            $starting_after = $results['data'][count($results['data'])-1]['id'];
+            $starting_after = $results['data'][count($results['data']) - 1]['id'];
             $customers = array_merge($customers, $results['data']);
         } while ($results['has_more']);
 
         $bar->advance();
 
-        collect($customers)->each(function($customer, $key) {
+        collect($customers)->each(function ($customer, $key) {
             if (isset($customer['subscriptions']['data'][0]) && ($user = User::whereEmail($customer['email']))) {
                 $this->updateUserSubscription($user, $customer['subscriptions']['data'][0]);
 

@@ -39,7 +39,7 @@ fields:
     display: Plans & Roles
   plans_and_roles:
     type: grid
-    display: 'When a user registers and subscribes to a plan, give them a role'
+    display: 'When a user subscribes to a plan, give them a role'
     fields:
       plan:
         type: suggest
@@ -47,13 +47,17 @@ fields:
         display: 'Stripe Plan'
         validate: required
         max_items: 1
-        width: 50
+      billing_day:
+        type: integer
+        display: Billing Day
+      prorate:
+        type: toggle
+        default: true
       role:
         type: user_roles
         display: 'Role to add to user'
         validate: required
         max_items: 1
-        width: 50
     mode: table
     add_row: Add Plan & Role
   templates_section:

@@ -11,7 +11,7 @@ use Illuminate\Support\ViewErrorBag;
 
 class ChargeListener extends Listener
 {
-    use Charge;
+    use Billing;
     /**
      * The events to be listened for, and the methods to call.
      *
@@ -21,9 +21,9 @@ class ChargeListener extends Listener
         'Form.submission.creating' => 'chargeForm',
         'content.saved' => 'chargeEntry',
         'user.registering' => 'register',
-        'Charge.cancel' =>  'cancel',
+        'Charge.cancel' => 'cancel',
         'Charge.resubscribe' => 'resubscribe',
-        'cp.nav.created'  => 'nav',
+        'cp.nav.created' => 'nav',
         'cp.add_to_head' => 'addToHead',
         'user.updated' => 'update',
    ];
@@ -42,19 +42,15 @@ class ChargeListener extends Listener
         // only do something if we're in the right collection
         // @todo hack in here due to Workshop not differentiating between editing and creating
         if (request()->has('process_payment') &&
-            in_array($entry->collectionName(), $this->getConfig('charge_collections')))
-        {
-            try
-            {
+            in_array($entry->collectionName(), $this->getConfig('charge_collections'))) {
+            try {
                 // get paid
                 $charge = $this->charge($this->getDetails($entry->data()));
 
                 // get the results ready for display
                 $this->flash->put('success', true);
                 $this->flash->put('details', $charge);
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 \Log::error($e->getMessage());
 
                 // @todo how return an error?
@@ -77,10 +73,8 @@ class ChargeListener extends Listener
     public function chargeForm($submission)
     {
         // only do something if we're on the right formset
-        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets', [])))
-        {
-            try
-            {
+        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets', []))) {
+            try {
                 // get paid
                 $charge = $this->charge($this->getDetails($submission->data()));
 
@@ -88,9 +82,7 @@ class ChargeListener extends Listener
                 $submission->set('customer_id', $charge['customer']['id']);
 
                 $this->flash->put('details', $charge);
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 \Log::error($e->getMessage());
                 return ['errors' => [$e->getMessage()]];
             }
@@ -100,22 +92,19 @@ class ChargeListener extends Listener
     }
 
     /**
-     * @param \Statamic\Data\Users\User $user
+     * @param Statamic\Data\Users\User $user
      *
-     * @return \Statamic\Data\Users\User|array
+     * @return Statamic\Data\Users\User|array
      */
     public function register($user)
     {
         // only do something if there's an amount or a plan
-        if (request()->has('amount') || request()->has('plan'))
-        {
-            try
-            {
+        if (request()->has('amount') || request()->has('plan')) {
+            try {
                 $charge = $this->charge($this->getDetails(['email' => $user->email()]), $user);
 
                 $this->flash->put('details', $charge);
-            } catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 \Log::error($e->getMessage());
                 return ['errors' => [$e->getMessage()]];
             }
@@ -149,7 +138,7 @@ class ChargeListener extends Listener
      */
     public function addToHead()
     {
-        return $this->js->tag("charge-cp") . PHP_EOL;
+        return $this->js->tag('charge-cp') . PHP_EOL;
     }
 
     public function cancel()

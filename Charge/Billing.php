@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge;
 
+use Stripe\Plan;
 use Carbon\Carbon;
 use Stripe\Refund;
 use Stripe\Customer;
@@ -12,7 +13,7 @@ use Statamic\API\Config;
 use Stripe\Subscription;
 use Stripe\Charge as StripeCharge;
 
-trait Charge
+trait Billing
 {
     public static $param_key = '_charge_params';
 
@@ -64,6 +65,30 @@ trait Charge
      */
     public function subscribe($details)
     {
+        /*
+            if there's a fixed billing date set the billing-cycle-anchor
+            if prorate, set prorate to true
+        */
+
+        $plansConfig = $this->getPlansConfig($details['plan']);
+        $trialDays = 0;
+        $prorate = array_get($plansConfig, 'prorate', true);
+
+        if ($billingDay = array_get($plansConfig, 'billing_day')) {
+            $trialDays = Carbon::now()->diffInDays(Carbon::now()->addMonths(2)->day($billingDay));
+
+            // we need to bill them the same amount as the plan, immediately
+            $plan = Plan::retrieve(['id' => $details['plan'], 'expand' => ['product']]);
+
+            /** @var \Stripe\Charge $charge */
+            StripeCharge::create([
+                'customer' => $details['customer'],
+                'amount' => $plan->amount,
+                'currency' => $plan->currency,
+                'description' => $plan->product->statement_descriptor,
+            ]);
+        }
+
         // charge them
         return Subscription::create([
             'customer' => $details['customer'],
@@ -73,6 +98,8 @@ trait Charge
                     'quantity' => array_get($details, 'quantity', 1),
                 ],
             ],
+            'prorate' => $prorate,
+            'trial_period_days' => $trialDays,
             'coupon' => array_get($details, 'coupon'),
         ])->__toArray(true);
     }
@@ -383,11 +410,17 @@ trait Charge
 
     public function getRole($plan)
     {
-        $plan_role = collect($this->getConfig('plans_and_roles', []))->first(function ($ignored, $data) use ($plan) {
-            return $plan == array_get($data, 'plan');
-        });
+        $plan_role = $this->getPlansConfig($plan);
 
         return $plan_role ? $plan_role['role'][0] : null;
+    }
+
+    public function getPlansConfig($plan)
+    {
+        return collect($this->getConfig('plans_and_roles', []))
+                ->first(function ($ignored, $data) use ($plan) {
+                    return $plan == array_get($data, 'plan');
+                });
     }
 
     /**

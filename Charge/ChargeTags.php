@@ -13,7 +13,7 @@ use Statamic\Extend\Tags;
 
 class ChargeTags extends Tags
 {
-    use Charge;
+    use Billing;
 
     public function init()
     {
@@ -27,12 +27,11 @@ class ChargeTags extends Tags
      */
     public function data($params = null)
     {
-        if (!$params)
-        {
+        if (!$params) {
             $params = $this->parameters;
         }
 
-        return '<input type="hidden" name="' . self::$param_key .'" value="'. Crypt::encrypt($params) .'" />';
+        return '<input type="hidden" name="' . self::$param_key . '" value="' . Crypt::encrypt($params) . '" />';
     }
 
     /**
@@ -92,7 +91,7 @@ class ChargeTags extends Tags
         $data['username'] = $user->username();
 
         if ($customer_id = $user->get('customer_id')) {
-            $customer = Customer::retrieve([ 'id' => $customer_id, 'expand' => ['default_source']]);
+            $customer = Customer::retrieve(['id' => $customer_id, 'expand' => ['default_source']]);
 
             /** @var \Stripe\Card $card */
             $card = $customer->default_source;
@@ -108,8 +107,7 @@ class ChargeTags extends Tags
 
     private function createForm($action, $data = [])
     {
-        if ($this->success())
-        {
+        if ($this->success()) {
             $data['success'] = true;
             $data['details'] = $this->flash->get('details');
         }
@@ -121,7 +119,7 @@ class ChargeTags extends Tags
         $html = $this->formOpen($action);
 
         if ($redirect = $this->getRedirectUrl()) {
-            $html .= '<input type="hidden" name="redirect" value="'.$redirect.'" />';
+            $html .= '<input type="hidden" name="redirect" value="' . $redirect . '" />';
         }
 
         return $html . $this->data() . $this->parse($data) . '</form>';
@@ -131,7 +129,7 @@ class ChargeTags extends Tags
      * Get the redirect URL
      *
      * @return string
-     */
+     **/
     private function getRedirectUrl()
     {
         $return = $this->get('redirect');
@@ -147,7 +145,7 @@ class ChargeTags extends Tags
      * Maps to {{ charge:success }}
      *
      * @return bool
-     */
+     **/
     public function success()
     {
         return $this->flash->exists('success');
@@ -157,7 +155,7 @@ class ChargeTags extends Tags
      * Maps to {{ charge:details }}
      *
      * @return array
-     */
+     **/
     public function details()
     {
         return $this->success() ? $this->flash->get('details') : [];
@@ -184,7 +182,7 @@ class ChargeTags extends Tags
      * The {{ charge:js }} tag
      *
      * @return string|array
-     */
+     **/
     public function js()
     {
         $plan_id = $this->getParam('plan_id');
@@ -261,8 +259,7 @@ class ChargeTags extends Tags
         $url = URL::assemble($this->actionUrl($action, false), $this->getParam('subscription_id'));
 
         // if they want to redirect, add it as a queary param
-        if ($redirect = $this->getParam('redirect'))
-        {
+        if ($redirect = $this->getParam('redirect')) {
             $url .= '&redirect=' . $redirect;
         }
         return $url;
