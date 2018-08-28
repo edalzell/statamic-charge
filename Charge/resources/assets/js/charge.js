@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     button.addEventListener('click', function (event) {
         let empty = stripeFieldsEmpty();
-        if (isFreePlan(plan) || stripeFieldsEmpty()) {
+        if (isFreePlan(plan) && stripeFieldsEmpty()) {
             // grab all the ones that are required
             let fields = [].slice.call(form.querySelectorAll('[required]'));
             fields.forEach(function (field) {
