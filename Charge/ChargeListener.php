@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
+use Statamic\API\User;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Illuminate\Support\MessageBag;
@@ -127,8 +128,10 @@ class ChargeListener extends Listener
      */
     public function nav(Nav $nav)
     {
-        $charge = (new NavItem)->name('Charge')->route('charge')->icon('credit-card');
-        $nav->addTo('tools', $charge);
+        if (User::getCurrent()->isSuper()) {
+            $charge = (new NavItem)->name('Charge')->route('charge')->icon('credit-card');
+            $nav->addTo('tools', $charge);
+        }
     }
 
     /**
