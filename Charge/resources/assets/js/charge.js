@@ -4,32 +4,35 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     let form = document.querySelector('form[data-charge-form]');
-    let plan = form.querySelector('#' + Charge.plan);
-    let button = form.querySelector('[data-charge-button]');
 
-    button.addEventListener('click', function (event) {
-        let empty = stripeFieldsEmpty();
-        if (isFreePlan(plan) && stripeFieldsEmpty()) {
-            // grab all the ones that are required
-            let fields = [].slice.call(form.querySelectorAll('[required]'));
-            fields.forEach(function (field) {
-                field.removeAttribute('required');
-            });
-        }
-    });
+    if (form) {
+        let plan = form.querySelector('#' + Charge.plan);
+        let button = form.querySelector('[data-charge-button]');
 
-    form.addEventListener('submit', function (event) {
-         if (!isFreePlan(plan) && !stripeFieldsEmpty()) {
-            // Disable the submit button to prevent repeated clicks:
-            button.disabled = true;
+        button.addEventListener('click', function (event) {
+            let empty = stripeFieldsEmpty();
+            if (isFreePlan(plan) && stripeFieldsEmpty()) {
+                // grab all the ones that are required
+                let fields = [].slice.call(form.querySelectorAll('[required]'));
+                fields.forEach(function (field) {
+                    field.removeAttribute('required');
+                });
+            }
+        });
 
-            // Request a token from Stripe:
-            Stripe.card.createToken(form, stripeResponseHandler);
+        form.addEventListener('submit', function (event) {
+            if (!isFreePlan(plan) && !stripeFieldsEmpty()) {
+                // Disable the submit button to prevent repeated clicks:
+                button.disabled = true;
 
-            // Prevent the form from being submitted:
-            event.preventDefault(); // Is better than return false ;-)
-        }
-    });
+                // Request a token from Stripe:
+                Stripe.card.createToken(form, stripeResponseHandler);
+
+                // Prevent the form from being submitted:
+                event.preventDefault(); // Is better than return false ;-)
+            }
+        });
+    }
 
     function stripeResponseHandler(status, response) {
         if (response.error) { // Problem!
