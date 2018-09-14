@@ -18,7 +18,7 @@
             <td>${{ number_format($subscription['amount'] / 100, 2) }}</td>
             <td>{{ $subscription['auto_renew'] ? 'Yes' : 'No' }}</td>
             <td>{{ date('M j, Y', $subscription['expiry_date']) }}</td>
-            <td>{!! \Statamic\Addons\Charge\Charge::getActionLink($subscription) !!}</td>
+            <td>{!! \Statamic\Addons\Charge\Billing::getActionLink($subscription) !!}</td>
         </tr>
     @endforeach
     </table>
