@@ -46,7 +46,7 @@ payment_failed_email_template: email/payment_failed
 
 ### Forms ###
 
-*NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. I recommend using the [yield](https://docs.statamic.com/tags/yield) and [section](https://docs.statamic.com/tags/section) tags for that.
+*NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. Stripe recommends that its library is loaded on every page for fraud detection so I suggest putting it in your layout.
 
 A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
 
@@ -72,6 +72,7 @@ Charge Form, `{{ charge:payment_form }}`
 
 Statamic Form, `{{ form:create }}`
 
+* note the `attr="data-charge-form"` in the form tag.
 * the following fields *must* be in your form:
     * `stripeEmail` or `email` - email of customer
 * for a one-time charge, somewhere in your form you need to set the `description`, `amount` (in cents) or `amount_dollars` (like 23.45), and optionally `currency` via `{{ charge:data }}` or a form field
