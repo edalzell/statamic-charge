@@ -188,8 +188,8 @@ class ChargeTags extends Tags
         $plan_id = $this->getParam('plan_id');
         $free_plan = $this->getParam('free_plan');
         $js = '<script src="https://js.stripe.com/v2/"></script>' . PHP_EOL;
-        $js .= $this->js->inline("var Charge = ". json_encode(['plan' => $plan_id, 'freePlan' => $free_plan]) . ";") . PHP_EOL;
-        $js .= $this->js->tag("charge") . PHP_EOL;
+        $js .= $this->js->inline('var Charge = ' . json_encode(['plan' => $plan_id, 'freePlan' => $free_plan]) . ';') . PHP_EOL;
+        $js .= $this->js->tag('charge') . PHP_EOL;
         $js .= $this->js->inline("Stripe.setPublishableKey('" . env('STRIPE_PUBLIC_KEY') . "')") . PHP_EOL;
 
         return $js;
@@ -260,8 +260,9 @@ class ChargeTags extends Tags
 
         // if they want to redirect, add it as a queary param
         if ($redirect = $this->getParam('redirect')) {
-            $url .= '&redirect=' . $redirect;
+            $url .= '?redirect=' . $redirect;
         }
+
         return $url;
     }
 
