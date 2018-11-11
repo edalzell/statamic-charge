@@ -62,13 +62,16 @@ fields:
     add_row: Add Plan & Role
   templates_section:
     type: section
-    display: Email Setting
+    display: Email Settings
   from_email:
     type: text
-    width: 33
+    width: 25
   canceled_email_template:
     type: template
-    width: 33
+    width: 25
   payment_failed_email_template:
     type: template
-    width: 33
+    width: 25
+  upcoming_payment_email_template:
+    type: template
+    width: 25

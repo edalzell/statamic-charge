@@ -181,7 +181,23 @@ class ChargeController extends Controller
             return response('No User Found');
         }
 
-        if ($event->type === 'invoice.payment_succeeded') {
+        if ($event->type === 'invoice.upcoming') {
+            /*
+            product_name, next_payment_due_date, cancel_link, update_billing_link
+            */
+            $this->sendEmail(
+                $user,
+                'payment_failed_email_template',
+                [
+                    'plan' => $user->get('plan'),
+                    'first_name' => $user->get('first_name'),
+                    'last_name' => $user->get('last_name'),
+                    'due_date' => $user->get('subscription_end'),
+                    'amount' => $data->amount,
+                    'currency' => $data->currency,
+                ]
+            );
+        } elseif ($event->type === 'invoice.payment_succeeded') {
             // update the subscription dates and status
             $user->set('subscription_start', $data->period_start)
                 ->set('subscription_end', $data->period_end)
