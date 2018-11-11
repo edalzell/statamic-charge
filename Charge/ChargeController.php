@@ -182,12 +182,9 @@ class ChargeController extends Controller
         }
 
         if ($event->type === 'invoice.upcoming') {
-            /*
-            product_name, next_payment_due_date, cancel_link, update_billing_link
-            */
             $this->sendEmail(
                 $user,
-                'payment_failed_email_template',
+                'upcoming_payment_email_template',
                 [
                     'plan' => $user->get('plan'),
                     'first_name' => $user->get('first_name'),
@@ -203,6 +200,8 @@ class ChargeController extends Controller
                 ->set('subscription_end', $data->period_end)
                 ->set('subscription_status', 'active')
                 ->save();
+
+        // @todo should we send an email here?
         } elseif (($event->type === 'invoice.payment_failed') && ($data->next_payment_attempt)) {
             $user->set('subscription_status', 'past_due');
             $user->save();
@@ -210,10 +209,12 @@ class ChargeController extends Controller
             $this->sendEmail(
                 $user,
                 'payment_failed_email_template',
-                [
+                 [
                     'plan' => $user->get('plan'),
                     'first_name' => $user->get('first_name'),
                     'last_name' => $user->get('last_name'),
+                    'amount' => $data->amount,
+                    'currency' => $data->currency,
                     'attempt_count' => $data->attempt_count,
                     'next_payment_attempt' => $data->next_payment_attempt,
                 ]
@@ -234,11 +235,10 @@ class ChargeController extends Controller
             $this->sendEmail(
                 $user,
                 'canceled_email_template',
-                [
-                    'plan' => $user->get('plan'),
-                    'first_name' => $user->get('first_name'),
-                    'last_name' => $user->get('last_name'),
-                ]
+                array_only(
+                    $user->data(),
+                    ['plan', 'first_name', 'last_name', 'subscription_end']
+                )
             );
         }
 
