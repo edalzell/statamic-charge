@@ -1,14 +1,14 @@
-## REQUIREMENTS ##
+## Requirements ##
 
 1. Charge requires PHP 7.1+
 
-## INSTALLATION ##
+## Installation ##
 
 1. Copy Charge folder to `site/addons`
 2. Run `php please update:addons`
 3. If you're going to use subscriptions, register the webhook w/ Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
 
-## SETTINGS ##
+## Settings ##
 
 * Go to `cp/addons/charge/settings` and fill in the required fields. `Collections` is for if you are using Workshop.
 * in `charge.yaml`
@@ -18,6 +18,8 @@
     * `plan` & `role` - when a customer signs for a plan, which role(s) should they have
     * `from_email` - when the payment failed emails go out, what email account do they come from
     * `canceled_email_template` & `payment_failed_email_template` - email templates to use for the failed payment emails
+    * `upcoming_payment_email_template` - email template to use for the customer's upcoming payment/invoice
+
 * in your [`.env` file](https://docs.statamic.com/environments#the-env-file), which MUST NOT be checked in:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
     * `STRIPE_SECRET_KEY` - Stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
@@ -41,8 +43,38 @@ canceled_email_template: email/cancel_subscription
 payment_failed_email_template: email/payment_failed
 ```
 
-## USAGE ##
+## Usage ##
 
+### Emails ###
+
+#### Upcoming Payment Email ####
+
+This is sent according to your Stripe settings (link to stripe docs), and assumes you have the webhook set up properly
+
+In the email template, you have access to:
+
+* `{{ plan }}` - The short name of the subscription plan
+* `{{ first_name }}` - The first name of the customer
+* `{{ last_name }}` - The last name of the customer
+* `{{ due_date }}` - When the payment will occur, in Unix timestamp format
+* `{{ amount }}` - Amount that will be charged, in cents
+* `{{ currency }}` - currency of payment
+
+#### Failed Payment Email ####
+
+This is sent if a payment fails.
+
+In the email template, you have access to:
+
+* `{{ plan }}` - The short name of the subscription plan
+* `{{ first_name }}` - The first name of the customer
+* `{{ last_name }}` - The last name of the customer
+* `{{ due_date }}` - When the payment will occur, in Unix timestamp format
+* `{{ amount }}` - Amount that will be charged, in cents
+* `{{ currency }}` - currency of payment
+* `{{ attempt_count }}` - how many times Charge has tried to process the payment
+* `{{ next_payment_attempt }}` - when Charge will try again, in Unix timestamp format
+*
 
 ### Forms ###
 
