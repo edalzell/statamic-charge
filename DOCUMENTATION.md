@@ -41,6 +41,7 @@ plans_and_roles:
 from_email: renewals@thedalzells.org
 canceled_email_template: email/cancel_subscription
 payment_failed_email_template: email/payment_failed
+upcoming_payment_email_template: email/payment_upcoming
 ```
 
 ## Usage ##
