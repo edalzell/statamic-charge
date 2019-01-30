@@ -1,6 +1,3 @@
-/**
- * Created by erin on 2016-11-23.
- */
 document.addEventListener('DOMContentLoaded', function () {
 
     let form = document.querySelector('form[data-charge-form]');
@@ -48,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else { // Token was created!
 
             // add token to form
-            addTokenToForm(response.id, form);
+            addTokenToForm(response, form);
 
             // Submit the form:
             form.submit();
@@ -74,7 +71,7 @@ function addTokenToForm(token, form) {
 
     input.type = 'hidden';
     input.name = 'stripeToken';
-    input.value = token;
+    input.value = token.id;
 
     form.appendChild(input);
 }
