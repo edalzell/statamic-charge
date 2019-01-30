@@ -138,6 +138,41 @@ Example - Charge Form - Stripe Checkout:
 {{ /charge:form }}
 ```
 
+If you're customizing Stripe Checkout, make sure to add the token to the form:
+```
+<script>
+    var handler = StripeCheckout.configure({
+        key: '{{ env:STRIPE_PUBLIC_KEY }}',
+        image: 'https://stripe.com/img/documentation/checkout/marketplace.png',
+        locale: 'auto',
+        token: function (token) {
+            let form = document.querySelector('#foo');
+
+            // You can access the token ID with `token.id`.
+            addTokenToForm(token, form);
+
+            // Get the token ID to your server-side code for use.
+            form.submit();
+        }
+    });
+    document.getElementById('customButton-6').addEventListener('click', function (e) {
+        // Open Checkout with further options:
+        handler.open({
+            name: 'Charge - Stripe Addon',
+            description: '{{ title }}',
+            currency: 'eur',
+            amount: 1000
+        });
+        e.preventDefault();
+    });
+
+    // Close Checkout on page navigation:
+    window.addEventListener('popstate', function () {
+        handler.close();
+    });
+</script>
+```
+
 Example - Statamic Form:
 ```
 {{ form:create in="charge" attr="class:form|data-charge-form" redirect="/thanks" }}
