@@ -45,8 +45,7 @@ class ConvertUsersCommand extends Command
         $users->each(function ($user, $key) use ($bar) {
             $user->username($user->email());
 
-            if ($user->has('_uid'))
-            {
+            if ($user->has('_uid')) {
                 $user->remove('_uid');
             }
 

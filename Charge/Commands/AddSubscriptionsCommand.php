@@ -47,7 +47,12 @@ class AddSubscriptionsCommand extends Command
         $this->info('Adding Subscription Details to Users');
 
         do {
-            $results = Customer::all(['limit' => 100, 'starting_after' => $starting_after])->__toArray(true);
+            $results = Customer::all(
+                [
+                    'limit' => 100,
+                    'starting_after' => $starting_after,
+                ]
+            )->__toArray(true);
 
             $starting_after = $results['data'][count($results['data']) - 1]['id'];
             $customers = array_merge($customers, $results['data']);
