@@ -47,16 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } else { // Token was created!
 
-            // Get the token ID:
-            let token = response.id;
-
-            // Insert the token ID into the form so it gets submitted to the server:
-            let input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'stripeToken';
-            input.value = token;
-
-            form.appendChild(input);
+            // add token to form
+            addTokenToForm(response.id, form);
 
             // Submit the form:
             form.submit();
@@ -75,25 +67,14 @@ document.addEventListener('DOMContentLoaded', function () {
         return plan && Charge.freePlan && (plan.value == Charge.freePlan);
     }
 });
-/*
-There a few minor differences what happens! As example `querySelector` only returns one element, if it is possible to have multiple of the forms or button you need to use `querySelectorAll` and loop over the `NodeList`.
 
-Example with a loop with a nice `each` helper method
-*//**
- * @param {Array|Object} array
- * @param {Function} callback
- * @param {Object} [scope]
- */
-var each = function (array, callback, scope) {
-    for (var key in array) {
-        if (array.hasOwnProperty(key)) {
-            callback.call(scope, array[key], key);
-        }
-    }
-};
-/*Then it would look something like
-*/
-/*var forms = document.querySelectorAll('form[data-charge-form]');
-each(forms, function (form) {
-    form.addEventListener('submit', stripeResponseHandler);
-});*/
+function addTokenToForm(token, form) {
+    // Insert the token ID into the form so it gets submitted to the server:
+    let input = document.createElement('input');
+
+    input.type = 'hidden';
+    input.name = 'stripeToken';
+    input.value = token;
+
+    form.appendChild(input);
+}
