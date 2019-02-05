@@ -12,7 +12,7 @@
 
 * Go to `cp/addons/charge/settings` and fill in the required fields. `Collections` is for if you are using Workshop.
 * in `charge.yaml`
-    * `charge_formset` - which formset you'll be using for the Form submission
+    * `charge_formsets` - an array of formsets you'll be using for the Form submission
     * `charge_collections` - which collection(s) you'll be using for the Workshop submission
     * `currency` - default currency for payments
     * `plan` & `role` - when a customer signs for a plan, which role(s) should they have
