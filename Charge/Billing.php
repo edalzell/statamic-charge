@@ -71,7 +71,7 @@ trait Billing
         */
 
         $plansConfig = $this->getPlansConfig($details['plan']);
-        $trialDays = 0;
+        $trialDays = array_get($details, 'trial_period_days', 0);
         $prorate = array_get($plansConfig, 'prorate', true);
 
         if ($billingDay = array_get($plansConfig, 'billing_day')) {
@@ -398,6 +398,8 @@ trait Billing
                 'amount_dollar',
                 'email',
                 'coupon',
+                'quantity',
+                'trial_period_days',
             ]),
             $this->decryptParams()
         );
@@ -432,7 +434,7 @@ trait Billing
     {
         $customer = Customer::retrieve([
             'id' => $customer_id,
-            'expand' => ['default_source']]);
+            'expand' => ['default_source'], ]);
 
         return ($customer && $customer->default_source) ? $customer->default_source->__toArray(true) : [];
     }
