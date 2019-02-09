@@ -107,6 +107,8 @@ class ChargeTags extends Tags
 
     private function createForm($action, $data = [])
     {
+        $html = $this->formOpen($action);
+
         if ($this->success()) {
             $data['success'] = true;
             $data['details'] = $this->flash->get('details');
@@ -115,8 +117,6 @@ class ChargeTags extends Tags
         if ($this->hasErrors()) {
             $data['errors'] = $this->getErrorBag()->all();
         }
-
-        $html = $this->formOpen($action);
 
         if ($redirect = $this->getRedirectUrl()) {
             $html .= '<input type="hidden" name="redirect" value="' . $redirect . '" />';
