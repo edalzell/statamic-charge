@@ -70,16 +70,15 @@ trait Billing
             if prorate, set prorate to true
         */
 
+        $plan = Plan::retrieve(['id' => $details['plan'], 'expand' => ['product']]);
+
         $plansConfig = $this->getPlansConfig($details['plan']);
         $trialDays = array_get($details, 'trial_period_days', 0);
-        $prorate = array_get($plansConfig, 'prorate', true);
 
         if ($billingDay = array_get($plansConfig, 'billing_day')) {
             $trialDays = Carbon::now()->diffInDays(Carbon::now()->addMonths(2)->day($billingDay));
 
             // we need to bill them the same amount as the plan, immediately
-            $plan = Plan::retrieve(['id' => $details['plan'], 'expand' => ['product']]);
-
             /** @var \Stripe\Charge $charge */
             StripeCharge::create([
                 'customer' => $details['customer'],
@@ -89,8 +88,7 @@ trait Billing
             ]);
         }
 
-        // charge them
-        return Subscription::create([
+        $subscription = [
             'customer' => $details['customer'],
             'items' => [
                 [
@@ -98,10 +96,17 @@ trait Billing
                     'quantity' => array_get($details, 'quantity', 1),
                 ],
             ],
-            'prorate' => $prorate,
-            'trial_period_days' => $trialDays,
+            'prorate' => array_get($plansConfig, 'prorate', true),
             'coupon' => array_get($details, 'coupon'),
-        ])->__toArray(true);
+        ];
+
+        if ($plan->trial_period_days) {
+            $subscription['trial_from_plan'] = true;
+        } else {
+            $subscription['trial_period_days'] = $trialDays;
+        }
+        // charge them
+        return Subscription::create($subscription)->__toArray(true);
     }
 
     public function resubscribe($id)
