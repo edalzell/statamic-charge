@@ -75,7 +75,7 @@ class ChargeTags extends Tags
     {
         return $this->createForm(
             'update_billing',
-            $this->getSourceDetails($this->getParam('customer_id'))
+            $this->getCustomerDetails($this->getParam('customer_id'))
         );
     }
 
@@ -212,7 +212,11 @@ class ChargeTags extends Tags
      */
     public function plans()
     {
-        $plans = Plan::all()->__toArray(true);
+        $plans = Plan::all(
+            [
+                'expand' => ['data.product'],
+            ]
+        )->__toArray(true);
 
         return $this->parseLoop($plans['data']);
     }
