@@ -8,6 +8,7 @@ use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Illuminate\Support\MessageBag;
 use Statamic\CP\Navigation\NavItem;
+use Statamic\Events\Data\UserSaved;
 use Illuminate\Support\ViewErrorBag;
 
 class ChargeListener extends Listener
@@ -22,11 +23,11 @@ class ChargeListener extends Listener
         'Form.submission.creating' => 'chargeForm',
         'content.saved' => 'chargeEntry',
         'user.registering' => 'register',
+        UserSaved::class => 'updateBilling',
         'Charge.cancel' => 'cancel',
         'Charge.resubscribe' => 'resubscribe',
         'cp.nav.created' => 'nav',
         'cp.add_to_head' => 'addToHead',
-        'user.updated' => 'update',
    ];
 
     public function init()
@@ -85,6 +86,7 @@ class ChargeListener extends Listener
                 $this->flash->put('details', $charge);
             } catch (\Exception $e) {
                 \Log::error($e->getMessage());
+
                 return ['errors' => [$e->getMessage()]];
             }
         }
@@ -107,18 +109,20 @@ class ChargeListener extends Listener
                 $this->flash->put('details', $charge);
             } catch (\Exception $e) {
                 \Log::error($e->getMessage());
+
                 return ['errors' => [$e->getMessage()]];
             }
         }
+
         return $user;
     }
 
     /**
-     * @param \Statamic\Data\Users\User $user
+     * @param \Statamic\Events\Data\UserSaved $event
      */
-    public function update($user)
+    public function updateBilling($event)
     {
-        $this->updateUserBilling($user);
+        $this->updateUserBilling($event->data);
     }
 
     /**
