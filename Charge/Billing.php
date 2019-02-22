@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Plan;
+use Stripe\Token;
 use Carbon\Carbon;
 use Stripe\Refund;
 use Stripe\Customer;
@@ -82,7 +83,7 @@ trait Billing
             /** @var \Stripe\Charge $charge */
             StripeCharge::create([
                 'customer' => $details['customer'],
-                'amount' => $plan->amount,
+                'amount' => $plan->amount * array_get($details, 'quantity', 1),
                 'currency' => $plan->currency,
                 'description' => $plan->product->statement_descriptor,
             ]);
@@ -229,30 +230,59 @@ trait Billing
 
     public function updateUserBilling($user)
     {
-        $request = request();
+        // don't do anything if there's no user
+        if (!$user) {
+            return;
+        }
 
-        // if there's a stripe token then they're updating the payment info
-        // but also check if the plan is different so that can be updated too
-        $new_plan = $request->get('plan');
+        $request = request();
 
         try {
             // if there's a token we're updating the payment info
             if ($request->has('stripeToken')) {
+                $token = $request->get('stripeToken');
+
+                if (Token::retrieve($token)->used) {
+                    return;
+                }
+
                 $customer = Customer::retrieve($user->get('customer_id')); // stored in your application
-                $customer->source = $request->get('stripeToken'); // obtained with Checkout
+                $customer->source = $token; // obtained with Checkout
                 $customer->save();
             }
 
+            // if there's no existing plan, do nothing
+            if (!$user->has('subscription_id')) {
+                return ['success' => true];
+            }
+
             $subscription = Subscription::retrieve($user->get('subscription_id'));
-            if ($subscription->plan != $new_plan) {
-                $old_plan = $subscription->plan->id;
-                $subscription->plan = $new_plan;
+
+            if (!$subscription) {
+                return ['success' => true];
+            }
+
+            // if the quantity changed, update
+            $qty = $request->get('quantity', 1);
+            $new_plan = $request->get('plan');
+
+            if (($subscription->quantity != $qty) || ($subscription->plan->id != $new_plan)) {
+                if ($subscription->quantity != $qty) {
+                    $subscription->quantity = $qty;
+                }
+
+                // if the plan changed, update
+                if ($subscription->plan->id != $new_plan) {
+                    $old_plan = $subscription->plan->id;
+                    $subscription->plan = $new_plan;
+                    $this->updateUserRoles($user, $new_plan, $old_plan);
+                }
+
                 $subscription->save();
-
-                $this->updateUserRoles($user, $new_plan, $old_plan);
-                $this->updateUserSubscription($user, $subscription->__toArray(true));
-
-                $user->save();
+                $this->updateUserSubscription(
+                    $user,
+                    $subscription->__toArray(true)
+                );
             }
 
             return ['success' => true];
@@ -285,6 +315,8 @@ trait Billing
         } else {
             $user->set('subscription_status', $subscription['status']);
         }
+
+        $user->save();
     }
 
     /**
@@ -297,6 +329,8 @@ trait Billing
         if ($user->get('plan') != $new_plan) {
             $this->removeUserRoles($user, $old_plan);
             $this->addUserRoles($user, $new_plan);
+            $user->set('plan', $new_plan);
+            $user->save();
         }
     }
 
@@ -436,13 +470,19 @@ trait Billing
      *
      * @return array
      */
-    public function getSourceDetails($customer_id)
+    public function getCustomerDetails($customer_id)
     {
-        $customer = Customer::retrieve([
-            'id' => $customer_id,
-            'expand' => ['default_source'], ]);
+        $details = Customer::retrieve(
+            [
+                'id' => $customer_id,
+                'expand' => ['default_source'],
+            ]
+        )->__toArray(true);
 
-        return ($customer && $customer->default_source) ? $customer->default_source->__toArray(true) : [];
+        $details['sources'] = $details['sources']['data'];
+        $details['subscriptions'] = $details['subscriptions']['data'];
+
+        return $details;
     }
 
     /**
@@ -474,5 +514,9 @@ trait Billing
          * Convert to the server timezone
          */
         return $dt->tz(Config::get('system.timezone'));
+    }
+
+    public function addError()
+    {
     }
 }
