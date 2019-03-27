@@ -415,13 +415,12 @@ These variables are available:
 
 #### Updating Billing Information ####
 
-You can have your users update their own payment information or change which plan they are on. Use the `charge:update_billing_form` tag and pass in the Stripe `custormer_id` as a parameter.
+You can have your users update their own payment information or change which plan they are on. Use the `charge:update_customer_form` tag and pass in the Stripe `custormer_id` as a parameter.
 
 Like the charge, this form requires the `charge:js` tag to be on the page so that the Stripe token can be generated. If you want to redirect after success, pass a `redirect` url.
 
 As w/ the payment form, remember **NOT** to put `name` fields on the CC form inputs so they aren't send to the server at all.
 
-You can also update the Statamic user information by using the `charge:update_user_form`. This allows your users to update their own user & billing/plan information.
 Example:
 
 ```
