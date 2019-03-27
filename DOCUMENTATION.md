@@ -135,7 +135,7 @@ Example - Charge Form - Stripe Checkout:
             data-locale="auto"
             data-currency="{{ currency }}">
     </script>
-{{ /charge:form }}
+{{ /charge:payment_form }}
 ```
 
 If you're customizing Stripe Checkout, make sure to add the token to the form:
