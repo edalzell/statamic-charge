@@ -135,7 +135,7 @@ trait Billing
     public function cancel($subscription_id)
     {
         // don't renew at end of period
-        $this->getSubscription($subscription_id)->cancel(['at_period_end' => true]);
+        $this->getSubscription($subscription_id)->cancel(['cancel_at_period_end' => true]);
     }
 
     /**
