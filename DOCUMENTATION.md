@@ -188,7 +188,7 @@ Example - Statamic Form:
 		</div>
 
 		<div class="form-item">
-			<label for="cc_number">Zip/Postal Code</label>
+			<label for="address_zip">Zip/Postal Code</label>
 			<input type="text" data-stripe="address_zip" id="address_zip" required>
 		</div>
 
