@@ -399,6 +399,7 @@ trait Billing
                 'stripeEmail',
                 'stripeToken',
                 'plan',
+                'description',
                 'amount',
                 'amount_dollar',
                 'email',
