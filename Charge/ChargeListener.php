@@ -78,6 +78,8 @@ class ChargeListener extends Listener
             try {
                 // get paid
                 $charge = $this->charge($this->getDetails($submission->data()));
+                
+                event('user.charged', [$submission]);
 
                 // add the charge id to the submission
                 $submission->set('customer_id', $charge['customer']['id']);
