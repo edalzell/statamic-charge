@@ -21,14 +21,14 @@ class ChargeListener extends Listener
      */
     public $events = [
         'Form.submission.creating' => 'chargeForm',
-        'content.saved' => 'chargeEntry',
+        'content.saving' => 'chargeEntry',
         'user.registering' => 'register',
         UserSaved::class => 'updateBilling',
         'Charge.cancel' => 'cancel',
         'Charge.resubscribe' => 'resubscribe',
         'cp.nav.created' => 'nav',
         'cp.add_to_head' => 'addToHead',
-   ];
+    ];
 
     public function init()
     {
@@ -43,8 +43,10 @@ class ChargeListener extends Listener
     {
         // only do something if we're in the right collection
         // @todo hack in here due to Workshop not differentiating between editing and creating
-        if (request()->has('process_payment') &&
-            in_array($entry->collectionName(), $this->getConfig('charge_collections'))) {
+        if (
+            request()->has('process_payment') &&
+            in_array($entry->collectionName(), $this->getConfig('charge_collections'))
+        ) {
             try {
                 // get paid
                 $charge = $this->charge($this->getDetails($entry->data()));
@@ -52,17 +54,21 @@ class ChargeListener extends Listener
                 // get the results ready for display
                 $this->flash->put('success', true);
                 $this->flash->put('details', $charge);
+
+                return $charge;
             } catch (\Exception $e) {
                 \Log::error($e->getMessage());
 
                 // @todo how return an error?
                 // @todo this is what `back()->withError(..)` does. Remove when they update Workshop
-                $value = new MessageBag((array) $e->getMessage());
+                $value = new MessageBag((array)$e->getMessage());
 
                 $this->session->flash(
                     'errors',
                     $this->session->get('errors', new ViewErrorBag)->put('charge', $value)
                 );
+
+                return null;
             }
         }
     }
