@@ -201,7 +201,7 @@ class ChargeController extends Controller
                 ->set('subscription_status', 'active')
                 ->save();
 
-        // @todo should we send an email here?
+            // @todo should we send an email here?
         } elseif (($event->type === 'invoice.payment_failed') && ($data->next_payment_attempt)) {
             $user->set('subscription_status', 'past_due');
             $user->save();
@@ -209,7 +209,7 @@ class ChargeController extends Controller
             $this->sendEmail(
                 $user,
                 'payment_failed_email_template',
-                 [
+                [
                     'plan' => $user->get('plan'),
                     'first_name' => $user->get('first_name'),
                     'last_name' => $user->get('last_name'),
