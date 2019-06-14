@@ -13,6 +13,8 @@ use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
 use Stripe\Charge as StripeCharge;
+use Statamic\Addons\Charge\Events\CustomerCharged;
+use Statamic\Addons\Charge\Events\CustomerSubscribed;
 
 trait Billing
 {
@@ -50,13 +52,17 @@ trait Billing
     public function oneTimeCharge($details)
     {
         /** @var \Stripe\Charge $charge */
-        return StripeCharge::create([
+        $charge = StripeCharge::create([
             'customer' => $details['customer'],
             'amount' => $details['amount'] ?: round($details['amount_dollar'] * 100),
             'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
             'receipt_email' => $details['email'],
             'description' => array_get($details, 'description'),
         ])->__toArray(true);
+
+        event(new CustomerCharged($charge));
+
+        return $charge;
     }
 
     /**
@@ -107,7 +113,11 @@ trait Billing
             $subscription['trial_period_days'] = $trialDays;
         }
         // charge them
-        return Subscription::create($subscription)->__toArray(true);
+        $subscription = Subscription::create($subscription)->__toArray(true);
+
+        event(new CustomerSubscribed($subscription));
+
+        return $subscription;
     }
 
     public function resubscribe($id)
