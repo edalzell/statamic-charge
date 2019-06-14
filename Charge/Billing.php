@@ -14,6 +14,7 @@ use Statamic\API\Config;
 use Stripe\Subscription;
 use Stripe\Charge as StripeCharge;
 use Statamic\Addons\Charge\Events\CustomerCharged;
+use Statamic\Addons\Charge\Events\CustomerCreated;
 use Statamic\Addons\Charge\Events\CustomerSubscribed;
 
 trait Billing
@@ -179,6 +180,7 @@ trait Billing
                 'source' => $token,
             ]);
 
+            event(new CustomerCreated($this->storage, $customer->id, $email));
             $this->storage->putYAML($email, ['customer_id' => $customer->id]);
         }
 
@@ -470,9 +472,9 @@ trait Billing
     public function getPlansConfig($plan)
     {
         return collect($this->getConfig('plans_and_roles', []))
-                ->first(function ($ignored, $data) use ($plan) {
-                    return $plan == array_get($data, 'plan');
-                });
+            ->first(function ($ignored, $data) use ($plan) {
+                return $plan == array_get($data, 'plan');
+            });
     }
 
     /**
@@ -527,6 +529,5 @@ trait Billing
     }
 
     public function addError()
-    {
-    }
+    { }
 }

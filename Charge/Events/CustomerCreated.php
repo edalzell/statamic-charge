@@ -2,11 +2,13 @@
 
 namespace Statamic\Addons\Charge\Events;
 
+use Statamic\API\File;
+use Statamic\API\Path;
 use Statamic\Events\Event;
 use Statamic\Permissions\File\Role;
+use Statamic\Filesystem\FileAccessor;
 use Statamic\Contracts\Data\DataEvent;
 use Statamic\Extend\Contextual\ContextualStorage;
-
 
 class CustomerCreated extends Event implements DataEvent
 {
@@ -55,6 +57,8 @@ class CustomerCreated extends Event implements DataEvent
      */
     public function affectedPaths()
     {
-        //        return [$this->storage->];
+        $pathPrefix = File::disk('storage')->filesystem()->getAdapter()->getPathPrefix();
+
+        return [Path::assemble($pathPrefix, 'addons', 'Charge', $this->email . '.yaml')];
     }
 }
