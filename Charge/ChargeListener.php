@@ -71,6 +71,8 @@ class ChargeListener extends Listener
                 return null;
             }
         }
+
+        return true;
     }
 
     /**
