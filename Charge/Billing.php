@@ -35,9 +35,10 @@ trait Billing
 
         // always make a customer
         /** @var \Stripe\Customer $customer */
-        $result['customer'] = $customer = $this->getOrCreateCustomer($details);
+        $customer = $this->getOrCreateCustomer($details['email']);
+        $result['customer'] = $customer->__toArray(true);
 
-        $details['customer'] = $customer['id'];
+        $details['customer'] = $customer->id;
 
         // is this a subscription?
         if (isset($details['plan'])) {
@@ -156,35 +157,21 @@ trait Billing
      * @param $details
      * @return array
      */
-    public function getOrCreateCustomer($details)
+    public function getOrCreateCustomer($email)
     {
         /** @var \Stripe\Customer $customer */
         $customer = null;
-        $token = null;
-
-        $email = $details['email'];
-
-        if (isset($details['stripeToken'])) {
-            $token = $details['stripeToken'];
-        }
 
         if ($customer_id = $this->getCustomerId($email)) {
             $customer = Customer::retrieve($customer_id);
-
-            // update the payment details
-            $customer->source = $token;
-            $customer->save();
         } else {
-            $customer = Customer::create([
-                'email' => $email,
-                'source' => $token,
-            ]);
+            $customer = Customer::create(['email' => $email]);
 
             event(new CustomerCreated($this->storage, $customer->id, $email));
             $this->storage->putYAML($email, ['customer_id' => $customer->id]);
         }
 
-        return $customer->__toArray(true);
+        return $customer;
     }
 
     private function getCustomerId($email)
@@ -452,6 +439,8 @@ trait Billing
                 'coupon',
                 'quantity',
                 'trial_period_days',
+                'payment_method',
+                'store_card',
             ]),
             $this->decryptParams()
         );

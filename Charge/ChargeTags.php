@@ -10,6 +10,8 @@ use Statamic\API\User;
 use Statamic\API\Crypt;
 use Statamic\API\Request;
 use Statamic\Extend\Tags;
+use Stripe\PaymentIntent;
+use Stripe\Checkout\Session;
 
 class ChargeTags extends Tags
 {
@@ -18,6 +20,37 @@ class ChargeTags extends Tags
     public function init()
     {
         Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+    }
+
+    public function session()
+    {
+        $session = Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'name' => $this->getParam('name'),
+                'description' => $this->getParam('description'),
+                'amount' => $this->getParam('amount'),
+                'currency' => $this->getParam('currency', $this->getConfig('currency', 'usd')),
+                'quantity' => $this->getParamInt('quantity', 1),
+            ]],
+            'success_url' => $this->getParam('success_url'),
+            'cancel_url' => $this->getParam('cancel_url'),
+        ]);
+
+        return $this->parse(['session_id' => $session->id]);
+    }
+
+    public function paymentIntent()
+    {
+        $pi = PaymentIntent::create([
+            'amount' => $this->getParam('amount'),
+            'description' => $this->getParam('description'),
+            'currency' => $this->getParam('currency', $this->getConfig('currency', 'usd')),
+            'payment_method_types' => ['card'],
+            'setup_future_usage' => 'off_session',
+        ]);
+
+        return $pi->client_secret;
     }
 
     /**
@@ -187,9 +220,11 @@ class ChargeTags extends Tags
     {
         $plan_id = $this->getParam('plan_id');
         $free_plan = $this->getParam('free_plan');
-        $js = '<script src="https://js.stripe.com/v2/"></script>' . PHP_EOL;
-        $js .= $this->js->inline('var Charge = ' . json_encode(['plan' => $plan_id, 'freePlan' => $free_plan]) . ';') . PHP_EOL;
-        $js .= $this->js->tag('charge') . PHP_EOL;
+        //$js = '<script src="https://js.stripe.com/v3/"></script>' . PHP_EOL;
+        // $js .= $this->js->inline("var stripe = Stripe('" . env('STRIPE_PUBLIC_KEY') . "');") . PHP_EOL;
+        // $js .= $this->js->inline("var elements = stripe.elements();") . PHP_EOL;
+        $js = $this->js->inline('var Charge = ' . json_encode(['plan' => $plan_id, 'freePlan' => $free_plan]) . ';') . PHP_EOL;
+        $js .= $this->js->tag('charge-new') . PHP_EOL;
         $js .= $this->js->inline("Stripe.setPublishableKey('" . env('STRIPE_PUBLIC_KEY') . "')") . PHP_EOL;
 
         return $js;

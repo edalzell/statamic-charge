@@ -4,9 +4,12 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
 use Statamic\API\User;
+use Stripe\PaymentIntent;
+use Stripe\PaymentMethod;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Illuminate\Support\MessageBag;
+use Stripe\Charge as StripeCharge;
 use Statamic\CP\Navigation\NavItem;
 use Statamic\Events\Data\UserSaved;
 use Illuminate\Support\ViewErrorBag;
@@ -20,7 +23,7 @@ class ChargeListener extends Listener
      * @var array
      */
     public $events = [
-        'Form.submission.creating' => 'chargeForm',
+        'Form.submission.creating' => 'handlePayment',
         'content.saving' => 'chargeEntry',
         'user.registering' => 'register',
         UserSaved::class => 'updateBilling',
@@ -33,6 +36,37 @@ class ChargeListener extends Listener
     public function init()
     {
         Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+    }
+
+    /**
+     * @param \Statamic\Forms\Submission $submission
+     *
+     * @return \Statamic\Forms\Submission|array
+     */
+
+    public function handlePayment($submission)
+    {
+        /** @var PaymentIntent $intent */
+        $intent = PaymentIntent::retrieve(request('payment_intent'));
+
+        // if there's a payment intent, store the payment method w/ the Customer
+        if (bool(request('store_payment_method', false))) {
+            /** @var \Stripe\Customer $customer */
+            $customer = $this->getOrCreateCustomer($submission->get('email'));
+
+            // attach the payment method to the customer
+            PaymentMethod::retrieve($intent->payment_method)->attach(['customer' => $customer->id]);
+
+            // store the customer id in the submission
+            $submission->set('customer_id', $customer->id);
+        }
+
+        /** @var StripeCharge $charge */
+        $charge = $intent->charges->data[0];
+
+        $this->flash->put('details', $charge->__toArray(true));
+
+        return $submission;
     }
 
     /**
@@ -61,7 +95,7 @@ class ChargeListener extends Listener
 
                 // @todo how return an error?
                 // @todo this is what `back()->withError(..)` does. Remove when they update Workshop
-                $value = new MessageBag((array)$e->getMessage());
+                $value = new MessageBag((array) $e->getMessage());
 
                 $this->session->flash(
                     'errors',
