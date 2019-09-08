@@ -43,30 +43,38 @@ class ChargeListener extends Listener
      *
      * @return \Statamic\Forms\Submission|array
      */
-
     public function handlePayment($submission)
     {
-        /** @var PaymentIntent $intent */
-        $intent = PaymentIntent::retrieve(request('payment_intent'));
+        // only do something if there's a payment intent
+        if (request()->has('payment_intent')) {
+            try {
+                /** @var PaymentIntent $intent */
+                $intent = PaymentIntent::retrieve(request('payment_intent'));
 
-        // if there's a payment intent, store the payment method w/ the Customer
-        if (bool(request('store_payment_method', false))) {
-            /** @var \Stripe\Customer $customer */
-            $customer = $this->getOrCreateCustomer($submission->get('email'));
+                // if there's a payment intent, store the payment method w/ the Customer
+                if (bool(request('store_payment_method', false))) {
+                    /** @var \Stripe\Customer $customer */
+                    $customer = $this->getOrCreateCustomer($submission->get('email'));
 
-            // attach the payment method to the customer
-            PaymentMethod::retrieve($intent->payment_method)->attach(['customer' => $customer->id]);
+                    // attach the payment method to the customer
+                    PaymentMethod::retrieve($intent->payment_method)->attach(['customer' => $customer->id]);
 
-            // store the customer id in the submission
-            $submission->set('customer_id', $customer->id);
+                    // store the customer id in the submission
+                    $submission->set('customer_id', $customer->id);
+                }
+
+                /** @var StripeCharge $charge */
+                $charge = $intent->charges->data[0];
+
+                $this->flash->put('details', $charge->__toArray(true));
+
+                return $submission;
+            } catch (\Exception $e) {
+                \Log::error($e->getMessage());
+
+                return ['errors' => [$e->getMessage()]];
+            }
         }
-
-        /** @var StripeCharge $charge */
-        $charge = $intent->charges->data[0];
-
-        $this->flash->put('details', $charge->__toArray(true));
-
-        return $submission;
     }
 
     /**
@@ -107,33 +115,6 @@ class ChargeListener extends Listener
         }
 
         return true;
-    }
-
-    /**
-     * @param \Statamic\Forms\Submission $submission
-     *
-     * @return \Statamic\Forms\Submission|array
-     */
-    public function chargeForm($submission)
-    {
-        // only do something if we're on the right formset
-        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets', []))) {
-            try {
-                // get paid
-                $charge = $this->charge($this->getDetails($submission->data()));
-
-                // add the charge id to the submission
-                $submission->set('customer_id', $charge['customer']['id']);
-
-                $this->flash->put('details', $charge);
-            } catch (\Exception $e) {
-                \Log::error($e->getMessage());
-
-                return ['errors' => [$e->getMessage()]];
-            }
-        }
-
-        return $submission;
     }
 
     /**
