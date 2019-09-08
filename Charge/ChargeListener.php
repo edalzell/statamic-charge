@@ -4,12 +4,9 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
 use Statamic\API\User;
-use Stripe\PaymentIntent;
-use Stripe\PaymentMethod;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Illuminate\Support\MessageBag;
-use Stripe\Charge as StripeCharge;
 use Statamic\CP\Navigation\NavItem;
 use Statamic\Events\Data\UserSaved;
 use Illuminate\Support\ViewErrorBag;
@@ -45,36 +42,22 @@ class ChargeListener extends Listener
      */
     public function handlePayment($submission)
     {
-        // only do something if there's a payment intent
-        if (request()->has('payment_intent')) {
+        // only do something if we're on the right formset
+        if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets', []))) {
             try {
-                /** @var PaymentIntent $intent */
-                $intent = PaymentIntent::retrieve(request('payment_intent'));
+                $charge = $this->charge($this->getDetails($submission->data()));
 
-                // if there's a payment intent, store the payment method w/ the Customer
-                if (bool(request('store_payment_method', false))) {
-                    /** @var \Stripe\Customer $customer */
-                    $customer = $this->getOrCreateCustomer($submission->get('email'));
+                $submission->set('customer_id', $charge['customer']['id']);
 
-                    // attach the payment method to the customer
-                    PaymentMethod::retrieve($intent->payment_method)->attach(['customer' => $customer->id]);
-
-                    // store the customer id in the submission
-                    $submission->set('customer_id', $customer->id);
-                }
-
-                /** @var StripeCharge $charge */
-                $charge = $intent->charges->data[0];
-
-                $this->flash->put('details', $charge->__toArray(true));
-
-                return $submission;
+                $this->flash->put('details', $charge);
             } catch (\Exception $e) {
                 \Log::error($e->getMessage());
 
                 return ['errors' => [$e->getMessage()]];
             }
         }
+
+        return $submission;
     }
 
     /**
