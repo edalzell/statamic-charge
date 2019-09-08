@@ -8,6 +8,7 @@ use Stripe\Customer;
 use Statamic\API\URL;
 use Statamic\API\User;
 use Statamic\API\Crypt;
+use Stripe\SetupIntent;
 use Statamic\API\Request;
 use Statamic\Extend\Tags;
 use Stripe\PaymentIntent;
@@ -37,7 +38,16 @@ class ChargeTags extends Tags
             'cancel_url' => $this->getParam('cancel_url'),
         ]);
 
-        return $this->parse(['session_id' => $session->id]);
+        return $session->id;
+    }
+
+    public function setupIntent()
+    {
+        $si = SetupIntent::create([
+            'usage' => 'off_session', // The default usage is off_session
+        ]);
+
+        return $si->client_secret;
     }
 
     public function paymentIntent()
