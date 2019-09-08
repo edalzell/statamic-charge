@@ -14,6 +14,7 @@ use Statamic\Extend\Controller;
 use Stripe\Error\Authentication;
 use Symfony\Component\Intl\Intl;
 use Statamic\CP\Publish\ValidationBuilder;
+use Illuminate\Http\Request as IlluminateRequest;
 
 class ChargeController extends Controller
 {
@@ -82,6 +83,19 @@ class ChargeController extends Controller
                 'subscriptions' => $this->getSubscriptions(),
             ]
         );
+    }
+
+    public function getPaymentIntent(IlluminateRequest $request)
+    {
+        $pi = PaymentIntent::create([
+            'amount' => $request->input('amount'),
+            'description' => $request->input('description'),
+            'currency' => $request->input('currency', $this->getConfig('currency', 'usd')),
+            'payment_method_types' => ['card'],
+            'setup_future_usage' => 'off_session',
+        ]);
+
+        return $pi->client_secret;
     }
 
     public function postProcessPayment()
@@ -201,7 +215,7 @@ class ChargeController extends Controller
                 ->set('subscription_status', 'active')
                 ->save();
 
-            // @todo should we send an email here?
+        // @todo should we send an email here?
         } elseif (($event->type === 'invoice.payment_failed') && ($data->next_payment_attempt)) {
             $user->set('subscription_status', 'past_due');
             $user->save();
