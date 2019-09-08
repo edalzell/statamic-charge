@@ -25,18 +25,36 @@ class ChargeTags extends Tags
 
     public function session()
     {
-        $session = Session::create([
+        $params = [
             'payment_method_types' => ['card'],
-            'line_items' => [[
-                'name' => $this->getParam('name'),
-                'description' => $this->getParam('description'),
-                'amount' => $this->getParam('amount'),
-                'currency' => $this->getParam('currency', $this->getConfig('currency', 'usd')),
-                'quantity' => $this->getParamInt('quantity', 1),
-            ]],
             'success_url' => $this->getParam('success_url'),
             'cancel_url' => $this->getParam('cancel_url'),
-        ]);
+        ];
+
+        switch ($this->getParam('type')) {
+            case 'one-time':
+                $params['line_items'] = [
+                    [
+                        'name' => $this->getParam('name'),
+                        'description' => $this->getParam('description'),
+                        'amount' => $this->getParam('amount'),
+                        'currency' => $this->getParam('currency', $this->getConfig('currency', 'usd')),
+                        'quantity' => $this->getParamInt('quantity', 1),
+                    ],
+                ];
+                break;
+            case 'subscription':
+                $params['subscription_data'] = [
+                    'items' => [
+                        [
+                            'plan' => $this->getParam('plan'),
+                        ],
+                    ],
+                ];
+                break;
+        }
+
+        $session = Session::create($params);
 
         return $session->id;
     }
