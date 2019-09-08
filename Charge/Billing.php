@@ -7,11 +7,14 @@ use Stripe\Token;
 use Carbon\Carbon;
 use Stripe\Refund;
 use Stripe\Customer;
+use Statamic\API\Arr;
 use Statamic\API\URL;
 use Statamic\API\User;
 use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
+use Stripe\PaymentIntent;
+use Stripe\PaymentMethod;
 use Stripe\Charge as StripeCharge;
 use Statamic\Addons\Charge\Events\CustomerCharged;
 use Statamic\Addons\Charge\Events\CustomerCreated;
@@ -53,14 +56,17 @@ trait Billing
 
     public function oneTimeCharge($details)
     {
-        /** @var \Stripe\Charge $charge */
-        $charge = StripeCharge::create([
-            'customer' => $details['customer'],
-            'amount' => $details['amount'] ?: round($details['amount_dollar'] * 100),
-            'currency' => array_get($details, 'currency', $this->getConfig('currency', 'usd')),
-            'receipt_email' => $details['email'],
-            'description' => array_get($details, 'description'),
-        ])->__toArray(true);
+        /** @var PaymentIntent $intent */
+        $intent = PaymentIntent::retrieve($details['payment_intent']);
+
+        // if there's a payment intent, store the payment method w/ the Customer
+        if (bool(Arr::get($details, 'store_payment_method', false))) {
+            // attach the payment method to the customer
+            PaymentMethod::retrieve($intent->payment_method)->attach(['customer' => $details['customer']]);
+        }
+
+        /** @var StripeCharge $charge */
+        $charge = $intent->charges->data[0]->__toArray(true);
 
         event(new CustomerCharged($charge));
 
@@ -439,8 +445,8 @@ trait Billing
                 'coupon',
                 'quantity',
                 'trial_period_days',
-                'payment_method',
-                'store_card',
+                'store_payment_method',
+                'payment_intent',
             ]),
             $this->decryptParams()
         );
@@ -518,5 +524,6 @@ trait Billing
     }
 
     public function addError()
-    { }
+    {
+    }
 }
