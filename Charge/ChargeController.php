@@ -9,12 +9,11 @@ use Statamic\API\Str;
 use Statamic\API\User;
 use Statamic\API\Email;
 use Statamic\API\Config;
-use Statamic\API\Request;
 use Statamic\Extend\Controller;
 use Stripe\Error\Authentication;
 use Symfony\Component\Intl\Intl;
 use Statamic\CP\Publish\ValidationBuilder;
-use Illuminate\Http\Request as IlluminateRequest;
+use Illuminate\Http\Request;
 
 class ChargeController extends Controller
 {
@@ -33,6 +32,23 @@ class ChargeController extends Controller
     public function index()
     {
         return response()->redirectToRoute('lists.customers');
+    }
+
+    public function postSession(Request $request): array
+    {
+        // @todo add validation
+
+        $session = $this->createSession($request->all());
+
+        return ['id' => $session->id];
+    }
+
+    public function postPaymentIntent(Request $request): array
+    {
+        // @todo add validation
+        $pi = $this->createPaymentIntent($request->all());
+
+        return ['client_secret' => $pi->client_secret];
     }
 
     /**
@@ -85,19 +101,6 @@ class ChargeController extends Controller
         );
     }
 
-    public function getPaymentIntent(IlluminateRequest $request)
-    {
-        $pi = PaymentIntent::create([
-            'amount' => $request->input('amount'),
-            'description' => $request->input('description'),
-            'currency' => $request->input('currency', $this->getConfig('currency', 'usd')),
-            'payment_method_types' => ['card'],
-            'setup_future_usage' => 'off_session',
-        ]);
-
-        return $pi->client_secret;
-    }
-
     public function postProcessPayment()
     {
         try {
@@ -123,7 +126,7 @@ class ChargeController extends Controller
     public function postUpdateUser()
     {
         if ($user = User::getCurrent()) {
-            $fields = Request::except(['_token', '_charge_params', 'stripeToken']);
+            $fields = request()->except(['_token', '_charge_params', 'stripeToken']);
 
             $validator = $this->runValidation($fields, $user->fieldset());
 
@@ -169,7 +172,7 @@ class ChargeController extends Controller
      *
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function postWebhook(\Illuminate\Http\Request $request)
+    public function postWebhook(Request $request)
     {
         $event = null;
         // verify the events
