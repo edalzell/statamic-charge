@@ -9,7 +9,6 @@ use Statamic\API\URL;
 use Statamic\API\User;
 use Statamic\API\Crypt;
 use Stripe\SetupIntent;
-use Statamic\API\Request;
 use Statamic\Extend\Tags;
 use Stripe\PaymentIntent;
 use Stripe\Checkout\Session;
@@ -25,36 +24,7 @@ class ChargeTags extends Tags
 
     public function session()
     {
-        $params = [
-            'payment_method_types' => ['card'],
-            'success_url' => $this->getParam('success_url'),
-            'cancel_url' => $this->getParam('cancel_url'),
-        ];
-
-        switch ($this->getParam('type')) {
-            case 'one-time':
-                $params['line_items'] = [
-                    [
-                        'name' => $this->getParam('name'),
-                        'description' => $this->getParam('description'),
-                        'amount' => $this->getParam('amount'),
-                        'currency' => $this->getParam('currency', $this->getConfig('currency', 'usd')),
-                        'quantity' => $this->getParamInt('quantity', 1),
-                    ],
-                ];
-                break;
-            case 'subscription':
-                $params['subscription_data'] = [
-                    'items' => [
-                        [
-                            'plan' => $this->getParam('plan'),
-                        ],
-                    ],
-                ];
-                break;
-        }
-
-        $session = Session::create($params);
+        $session = $this->createSession($this->parameters);
 
         return $session->id;
     }
@@ -196,7 +166,7 @@ class ChargeTags extends Tags
         $return = $this->get('redirect');
 
         if ($this->getBool('allow_request_redirect')) {
-            $return = Request::input('redirect', $return);
+            $return = request('redirect', $return);
         }
 
         return $return;
