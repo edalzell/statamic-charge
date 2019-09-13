@@ -15,6 +15,7 @@ use Statamic\API\Config;
 use Stripe\Subscription;
 use Stripe\PaymentIntent;
 use Stripe\PaymentMethod;
+use Stripe\Checkout\Session;
 use Stripe\Charge as StripeCharge;
 use Statamic\Addons\Charge\Events\CustomerCharged;
 use Statamic\Addons\Charge\Events\CustomerCreated;
@@ -23,6 +24,51 @@ use Statamic\Addons\Charge\Events\CustomerSubscribed;
 trait Billing
 {
     public static $param_key = '_charge_params';
+
+    private function createSession(array $params): Session
+    {
+        $params = [
+            'payment_method_types' => ['card'],
+            'success_url' => URL::makeAbsolute(Arr::get($params, 'success_url')),
+            'cancel_url' => URL::makeAbsolute(Arr::get($params, 'cancel_url')),
+        ];
+
+        switch (Arr::get($params, 'type')) {
+            case 'one-time':
+                $params['line_items'] = [
+                    [
+                        'name' => Arr::get($params, 'name'),
+                        'description' => Arr::get($params, 'description'),
+                        'amount' => Arr::get($params, 'amount'),
+                        'currency' => Arr::get($params, 'currency', $this->getConfig('currency', 'usd')),
+                        'quantity' => Arr::get($params, 'quantity', 1),
+                    ],
+                ];
+                break;
+            case 'subscription':
+                $params['subscription_data'] = [
+                    'items' => [
+                        [
+                            'plan' => Arr::get($params, 'plan'),
+                        ],
+                    ],
+                ];
+                break;
+        }
+
+        return Session::create($params);
+    }
+
+    private function createPaymentIntent(array $params): PaymentIntent
+    {
+        return PaymentIntent::create([
+            'amount' => Arr::get($params, 'amount'),
+            'description' => Arr::get($params, 'description'),
+            'currency' => Arr::get($params, 'currency', $this->getConfig('currency', 'usd')),
+            'payment_method_types' => ['card'],
+            'setup_future_usage' => 'off_session',
+        ]);
+    }
 
     /**
      * Make the appropriate charge, either a one time or a subscription
@@ -38,10 +84,10 @@ trait Billing
 
         // always make a customer
         /** @var \Stripe\Customer $customer */
-        $customer = $this->getOrCreateCustomer($details['email']);
-        $result['customer'] = $customer->__toArray(true);
+        $customer = $this->getOrCreateCustomer($details);
+        $result['customer'] = $customer;
 
-        $details['customer'] = $customer->id;
+        $details['customer'] = $customer['id'];
 
         // is this a subscription?
         if (isset($details['plan'])) {
@@ -113,6 +159,7 @@ trait Billing
             ],
             'prorate' => array_get($plansConfig, 'prorate', true),
             'coupon' => array_get($details, 'coupon'),
+            'expand' => ['latest_invoice.payment_intent'],
         ];
 
         if ($plan->trial_period_days) {
@@ -123,6 +170,10 @@ trait Billing
         // charge them
         $subscription = Subscription::create($subscription)->__toArray(true);
 
+        dd($subscription);
+
+        // subscription.status = 'incomplete`
+        // subscription.payment_intent.status = 'requires_action'
         event(new CustomerSubscribed($subscription));
 
         return $subscription;
@@ -163,21 +214,41 @@ trait Billing
      * @param $details
      * @return array
      */
-    public function getOrCreateCustomer($email)
+    public function getOrCreateCustomer($details)
     {
         /** @var \Stripe\Customer $customer */
         $customer = null;
+        $token = null;
+
+        $email = $details['email'];
+
+        if (isset($details['stripeToken'])) {
+            $token = $details['stripeToken'];
+        }
 
         if ($customer_id = $this->getCustomerId($email)) {
             $customer = Customer::retrieve($customer_id);
+
+            if ($token) {
+                // update the payment details
+                $customer->source = $token;
+                $customer->save();
+            }
         } else {
-            $customer = Customer::create(['email' => $email]);
+            if ($token) {
+                $customer = Customer::create([
+                    'email' => $email,
+                    'source' => $token,
+                ]);
+            } else {
+                $customer = Customer::create(['email' => $email]);
+            }
 
             event(new CustomerCreated($this->storage, $customer->id, $email));
             $this->storage->putYAML($email, ['customer_id' => $customer->id]);
         }
 
-        return $customer;
+        return $customer->__toArray(true);
     }
 
     private function getCustomerId($email)
