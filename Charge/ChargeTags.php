@@ -235,7 +235,7 @@ class ChargeTags extends Tags
      */
     public function plan()
     {
-        return $this->parse(Plan::retrieve($this->getParam('plan'))->__toArray());
+        return $this->parse(Plan::retrieve($this->getParam('plan'))->toArray());
     }
 
     /**
@@ -249,7 +249,7 @@ class ChargeTags extends Tags
             [
                 'expand' => ['data.product'],
             ]
-        )->__toArray(true);
+        )->toArray();
 
         return $this->parseLoop($plans['data']);
     }

@@ -61,7 +61,7 @@ class ChargeController extends Controller
         $data = null;
 
         try {
-            $customers = Customer::all(['limit' => 100])->__toArray(true);
+            $customers = Customer::all(['limit' => 100])->toArray();
 
             $data = ['customers' => $customers['data']];
         } catch (Authentication $e) {
@@ -237,7 +237,7 @@ class ChargeController extends Controller
                 ]
             );
         } elseif ($event->type === 'customer.subscription.updated') {
-            $this->updateUserSubscription($user, $data->__toArray());
+            $this->updateUserSubscription($user, $data->toArray());
 
             $user->save();
         } elseif ($event->type === 'customer.subscription.deleted') {

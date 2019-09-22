@@ -112,7 +112,7 @@ trait Billing
         }
 
         /** @var StripeCharge $charge */
-        $charge = $intent->charges->data[0]->__toArray(true);
+        $charge = $intent->charges->data[0]->toArray();
 
         event(new CustomerCharged($charge));
 
@@ -168,7 +168,7 @@ trait Billing
             $subscription['trial_period_days'] = $trialDays;
         }
         // charge them
-        $subscription = Subscription::create($subscription)->__toArray(true);
+        $subscription = Subscription::create($subscription)->toArray();
 
         dd($subscription);
 
@@ -248,7 +248,7 @@ trait Billing
             $this->storage->putYAML($email, ['customer_id' => $customer->id]);
         }
 
-        return $customer->__toArray(true);
+        return $customer->toArray();
     }
 
     private function getCustomerId($email)
@@ -357,7 +357,7 @@ trait Billing
                 $subscription->save();
                 $this->updateUserSubscription(
                     $user,
-                    $subscription->__toArray(true)
+                    $subscription->toArray()
                 );
             }
 
@@ -458,7 +458,7 @@ trait Billing
 
     public function getCharges()
     {
-        $charges = StripeCharge::all(['limit' => 100])->__toArray(true);
+        $charges = StripeCharge::all(['limit' => 100])->toArray();
 
         // only want the ones that have NOT been refunded
         return collect($charges['data'])->filter(function ($charge) {
@@ -476,7 +476,7 @@ trait Billing
         $subscriptions = Subscription::all([
             'limit' => 100,
             'expand' => ['data.customer', 'data.plan', 'data.plan.product'],
-        ])->__toArray(true);
+        ])->toArray();
 
         return collect($subscriptions['data'])
             ->reject(function ($subscription) {
@@ -555,7 +555,7 @@ trait Billing
                 'id' => $customer_id,
                 'expand' => ['default_source'],
             ]
-        )->__toArray(true);
+        )->toArray();
 
         $details['sources'] = $details['sources']['data'];
         $details['subscriptions'] = $details['subscriptions']['data'];
