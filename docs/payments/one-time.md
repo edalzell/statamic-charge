@@ -1,4 +1,4 @@
-For requirements and installation please see the [top-level page](../DOCUMENTATION.md)
+For requirements and installation please see the [top-level page](../../DOCUMENTATION.md)
 
 This page describes how to accept one time payments on your site, via a form, user registration or Workshop edit. The methods below work with the with or without the SCA requirements.
 
