@@ -1,6 +1,7 @@
 ## Requirements ##
 
 1. Charge requires PHP 7.1+
+2. Stripe API >= 2019-10-17
 
 ## Installation ##
 
@@ -46,6 +47,8 @@ upcoming_payment_email_template: email/payment_upcoming
 
 ## Usage ##
 
+Look [here](docs/payments/one-time.md) For One Time payments
+
 ### Emails ###
 
 #### Upcoming Payment Email ####
@@ -79,289 +82,7 @@ In the email template, you have access to:
 
 ### Forms ###
 
-*NOTE*: all ways below require `{{ charge:js }}` be loaded on the appropriate template. Stripe recommends that its library is loaded on every page for fraud detection so I suggest putting it in your layout.
-
-A Stripe Customer is created on a charge, unless the customer has been charged before (via Charge).
-
-For all options below, the charge details are available in the `{{ charge:details }}` tag.
-
-There are four ways to use it:
-
-1. Statamic's `Form` tag
-2. Charge's `{{ charge:form }}`- for when you want to use Stripe Checkout, etc
-3. User registration form (for paid memberships, both subscriptions and one-time)
-4. Workshop entry creation
-
-*NOTE*: if the user is logged in, the subscription details will be stored in the user data
-
-Charge Form, `{{ charge:payment_form }}`
-
-* for a one-time charge pass in the `amount` (in cents), or `amount_dollar` (in decimal), `description`, and optionally the `currency` as parameters on the tag
-* for a subscription, have a `plan` field in your form with the Stripe Plan
-  * if you want to discount the subscription, send a `coupon` value. See [Stripe's documentation](https://stripe.com/docs/subscriptions/discounts) for setting up discounts.
-* if you want to redirect the customer after the charge, use a `redirect` parameter
-* inside the tag, `success`, `errors` and `details` are available as variables
-* outside the tag use `{{ charge:success }}`, `{{ charge:errors }}` and `{{ charge:details }}` instead.
-
-Statamic Form, `{{ form:create }}`
-
-* note the `attr="data-charge-form"` in the form tag.
-* the following fields *must* be in your form:
-    * `stripeEmail` or `email` - email of customer
-* for a one-time charge, somewhere in your form you need to set the `description`, `amount` (in cents) or `amount_dollars` (like 23.45), and optionally `currency` via `{{ charge:data }}` or a form field
-* for a subscription, include a `plan` field along with the above email field. Neither `currency`, `amount` nor `description` are needed for subscriptions
-  * if you want to discount the subscription, send a `coupon` value. See [Stripe's documentation](https://stripe.com/docs/subscriptions/discounts) for setting up discounts.
-* the `customer_id` is available in the `submission` data
-* please note the `data-*` attributes on the form items. Those are required.
-* use the standard `success` and `error` variables.
-
-Example - Charge Form - Stripe Checkout:
-```
-{{# currency is optional #}}
-{{ charge:payment_form redirect="/thanks" amount="{amount}" description="{description}" currency="usd" }}
-    {{ if success }}
-        {{ details }}
-            ID: {{ id }}
-        {{ /details }}
-    {{ /if}}
-
-    <script
-            src="https://checkout.stripe.com/checkout.js" class="stripe-button"
-            data-key="{{ env:STRIPE_PUBLIC_KEY }}"
-            data-amount="{{ amount }}"
-            data-name="{{ company }}"
-            data-description="{{ description }}"
-            data-image="/img/documentation/checkout/marketplace.png"
-            data-locale="auto"
-            data-currency="{{ currency }}">
-    </script>
-{{ /charge:payment_form }}
-```
-
-If you're customizing Stripe Checkout, make sure to add the token to the form:
-```
-<script>
-    var handler = StripeCheckout.configure({
-        key: '{{ env:STRIPE_PUBLIC_KEY }}',
-        image: 'https://stripe.com/img/documentation/checkout/marketplace.png',
-        locale: 'auto',
-        token: function (token) {
-            let form = document.querySelector('#foo');
-
-            // You can access the token ID with `token.id`.
-            addTokenToForm(token, form);
-
-            // Get the token ID to your server-side code for use.
-            form.submit();
-        }
-    });
-    document.getElementById('customButton-6').addEventListener('click', function (e) {
-        // Open Checkout with further options:
-        handler.open({
-            name: 'Charge - Stripe Addon',
-            description: '{{ title }}',
-            currency: 'eur',
-            amount: 1000
-        });
-        e.preventDefault();
-    });
-
-    // Close Checkout on page navigation:
-    window.addEventListener('popstate', function () {
-        handler.close();
-    });
-</script>
-```
-
-Example - Statamic Form:
-```
-{{ form:create in="charge" attr="class:form|data-charge-form" redirect="/thanks" }}
-	<div class="form-item">
-		<label>Email</label>
-		<input type="email" name="email" value="{{ old:email }}" />
-	</div>
-
-	<fieldset class="payment">
-		<div class="form-item">
-			<label for="cc_name">Name on Card</label>
-			<input type="text" data-stripe="name" id="cc_name" required>
-		</div>
-
-		<div class="form-item">
-			<label for="address_zip">Zip/Postal Code</label>
-			<input type="text" data-stripe="address_zip" id="address_zip" required>
-		</div>
-
-		<div class="form-item">
-			<label for="cc_number">Card Number</label>
-			<input type="text" data-stripe="number" id="cc_number" required>
-		</div>
-
-		<div class="row row-inner">
-			<div class="col">
-				<div class="form-item">
-					<label for="exp_month">Expiry Month</label>
-					<input type="text" data-stripe="exp_month" id="exp_month" maxlength="2" required placeholder="00">
-				</div>
-			</div>
-
-			<div class="col">
-				<div class="form-item">
-					<label for="exp_year">Expiry Year</label>
-					<input type="text" data-stripe="exp_year" id="exp_year" maxlength="2" required placeholder="00">
-				</div>
-			</div>
-
-			<div class="col">
-				<div class="form-item">
-					<label for="cvc">CVC</label>
-					<input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="0000">
-				</div>
-			</div>
-		</div>
-
-	</fieldset>
-
-	{{ charge:data :amount="amount" :description="description" currency="cad" }}
-
-	<button class="button primary" id="register" data-charge-button>Pay</button>
-
-{{ /form:create }}
-```
-
-For a subscription, like above, but no `{{ charge:data }}` needed, instead:
-```
-<div class="form-item">
-    <label for="plan">Membership Type</label>
-    <select name="plan" id="plan" class="big" >
-        <option>Please Select</option>
-        <option value="associate">Associate</option>
-        <option value="clinical">Clinical</option>
-        <option value="student">Student</option>
-    </select>
-</div>
-```
-
-For a membership upon user registration:
-```
-<section class="regular">
-
-    <header>
-        <h1>Register</h1>
-    </header>
-
-    <article class="content">
-
-        {{ user:register_form redirect="/account" attr="class:form|data-charge-form" }}
-
-            {{ if errors }}
-                <div class="alert alert-danger">
-                    {{ errors }}
-                        {{ value }}<br>
-                    {{ /errors }}
-                </div>
-            {{ /if }}
-
-        <div class="row row-inner">
-            <div class="col">
-                <div class="form-item">
-                    <label>Email</label>
-                    <input type="text" name="email" value="{{ old:email }}" />
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="form-item">
-                    <label>First Name</label>
-                    <input type="text" name="first_name" value="{{ old:first_name }}" />
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="form-item">
-                    <label>Last Name</label>
-                    <input type="text" name="last_name" value="{{ old:last_name }}" />
-                </div>
-            </div>
-        </div>
-
-        <div class="form-item">
-            <label>Password</label>
-            <input type="password" name="password" />
-        </div>
-
-        <div class="form-item">
-            <label>Password Confirmation</label>
-            <input type="password" name="password_confirmation" />
-        </div>
-
-        <fieldset class="payment">
-            <legend>Payment</legend>
-            <div class="form-item">
-                <label for="plan">Membership Type</label>
-                <select name="plan" id="plan" class="big" >
-                    <option>Please Select</option>
-                    <option value="associate">Associate</option>
-                    <option value="clinical">Clinical</option>
-                    <option value="student">Student</option>
-                </select>
-            </div>
-
-            <div class="form-item">
-                <label for="cc_name">Name on Card</label>
-                <input type="text" data-stripe="name" id="cc_name" required>
-            </div>
-
-            <div class="form-item">
-                <label for="cc_number">Zip/Postal Code</label>
-                <input type="text" data-stripe="address_zip" id="address_zip" required>
-            </div>
-
-            <div class="form-item">
-                <label for="cc_number">Card Number</label>
-                <input type="text" data-stripe="number" id="cc_number" required>
-            </div>
-
-            <div class="row row-inner">
-                <div class="col">
-                    <div class="form-item">
-                        <label for="exp_month">Expiry Month</label>
-                        <input type="text" data-stripe="exp_month" id="exp_month" maxlength="2" required placeholder="00">
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="form-item">
-                        <label for="exp_year">Expiry Year</label>
-                        <input type="text" data-stripe="exp_year" id="exp_year" maxlength="2" required placeholder="00">
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="form-item">
-                        <label for="cvc">CVC</label>
-                        <input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="0000">
-                    </div>
-                </div>
-            </div>
-
-        </fieldset>
-
-        <button class="button primary" id="register" data-charge-button>Register</button>
-
-        {{ /user:register_form }}
-
-    </article>
-
-</section>
-{{ section:chargeJS }}
-    {{ charge:js }}
-{{ /section:chargeJS }}
-```
-
-For Workshop entry creation, use the same fields/tags as above but add `{{ charge:process_payment }}` to the template used to **CREATE** entries. Do **NOT** put it on the template used to edit entries.
-
-For a one-time charge, take out the `plan` part and use `{{ charge:data }}` for the amount, etc
+For Workshop entry creation, add `{{ charge:process_payment }}` to the template used to **CREATE** entries. Do **NOT** put it on the template used to edit entries.
 
 ### Tags ###
 
@@ -371,8 +92,6 @@ For a one-time charge, take out the `plan` part and use `{{ charge:data }}` for 
 * Success - `{{ charge:success }}` - was the last action/transaction successful?
 * Errors - `{{ charge:errors }}` - if there were errors, they'll be in here
 * Details - `{{ charge:details }}` - transaction details (all the data from Stripe)
-* Data - `{{ charge:data }}` - to pass transaction data in your form, you can set the parameters (i.e. `amount="50"`)
-* JS - `{{ charge:js }}` - adds the required JS to generate the Stripe token needed
 
 ### User Data ###
 
