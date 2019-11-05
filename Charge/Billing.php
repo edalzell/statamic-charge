@@ -27,7 +27,7 @@ trait Billing
 
     private function createSession(array $params): Session
     {
-        $params = [
+        $sessionParams = [
             'payment_method_types' => ['card'],
             'success_url' => URL::makeAbsolute(Arr::get($params, 'success_url')),
             'cancel_url' => URL::makeAbsolute(Arr::get($params, 'cancel_url')),
@@ -35,7 +35,7 @@ trait Billing
 
         switch (Arr::get($params, 'type')) {
             case 'one-time':
-                $params['line_items'] = [
+                $sessionParams['line_items'] = [
                     [
                         'name' => Arr::get($params, 'name'),
                         'description' => Arr::get($params, 'description'),
@@ -46,7 +46,7 @@ trait Billing
                 ];
                 break;
             case 'subscription':
-                $params['subscription_data'] = [
+                $sessionParams['subscription_data'] = [
                     'items' => [
                         [
                             'plan' => Arr::get($params, 'plan'),
@@ -56,7 +56,7 @@ trait Billing
                 break;
         }
 
-        return Session::create($params);
+        return Session::create($sessionParams);
     }
 
     private function createPaymentIntent(array $params): PaymentIntent
