@@ -13,7 +13,6 @@
 
 * Go to `cp/addons/charge/settings` and fill in the required fields. `Collections` is for if you are using Workshop.
 * in `charge.yaml`
-    * `charge_formsets` - an array of formsets you'll be using for the Form submission
     * `charge_collections` - which collection(s) you'll be using for the Workshop submission
     * `currency` - default currency for payments
     * `plan` & `role` - when a customer signs for a plan, which role(s) should they have
@@ -47,13 +46,15 @@ upcoming_payment_email_template: email/payment_upcoming
 
 ## Usage ##
 
-Look [here](docs/payments/one-time.md) For One Time payments
+Two options, [One Time](docs/payments/one-time.md) payments or [subscriptions](docs/payments/subscriptions.md)
+
+Please note that much of the payment processing now occurs on the front end, so please see the Stripe docs for what's needed.
 
 ### Emails ###
 
 #### Upcoming Payment Email ####
 
-This is sent according to your Stripe settings (link to stripe docs), and assumes you have the webhook set up properly
+This is sent according to your Stripe settings, and assumes you have the webhook set up properly
 
 In the email template, you have access to:
 

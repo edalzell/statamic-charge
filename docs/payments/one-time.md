@@ -1,6 +1,6 @@
 For requirements and installation please see the [top-level page](../../DOCUMENTATION.md)
 
-This page describes how to accept one time payments on your site, via a form, user registration or Workshop edit. The methods below work with the with or without the SCA requirements.
+This page describes how to accept one time payments on your site. The methods below work with with or without the SCA requirements.
 
 There are [two ways](https://stripe.com/docs/web) to take payment with Stripe, [Checkout](https://stripe.com/docs/payments/checkout) or [Elements](https://stripe.com/docs/web/setup), and Charge works either way.
 
@@ -73,12 +73,11 @@ You can get the Payment Intents ID two ways, with a tag, or via AJAX.
 
 ### Tag ###
 
-`{{ charge:payment_intent ...params... }}`
-
+`{{ charge:payment_intent ...params... }}` - returns the client secret
 
 ### AJAX ###
 
-Send a POST request (don't forget the CSRF token) to the `/!/Charge/payment_intent` endpoint. Returns an array with `client_secret` => $payment_intent->client_secret
+Send a GET request to the `/!/Charge/payment_intent` endpoint. Returns an array with `client_secret => $payment_intent->client_secret`
 
 ### Parameters ###
 
@@ -92,6 +91,8 @@ At the moment, Charge supports the following Payment Intent parameters:
 Please open an [issue](https://github.com/edalzell/statamic-charge/issues) if you have a use case that requires more parameters.
 
 ### Example ###
+
+Please note, the charging of the card and any SCA-related actions happen on the front end now. Please see the Stripe documentation for all the details.
 
 ```
 <script>
@@ -111,48 +112,49 @@ Please open an [issue](https://github.com/edalzell/statamic-charge/issues) if yo
         // Stripe gives a warning if you don't disable the submit button
         document.getElementById('payment-button').disabled = true;
 
-        stripe.handleCardPayment(
-            '{{ charge:payment_intent amount="1100" description="The description" }}',
-            card,
-            {
-                payment_method_data: {
-                  billing_details: {
-                    name: document.getElementById('name').value,
-                    email: document.getElementById('email').value,
-                  }
-                }
-              }
-        ).then(function(result) {
-            if (result.error) {
-                // Display error.message in your UI.
-            } else {
-                // The payment has succeeded
-                // Display a success message
+        var url = new URL('{{ site_url }}!/Charge/payment_intent');
 
-                // add the payment intent id to the form so Charge can store the charge id in the submission
-                addToForm('payment_intent', result.paymentIntent.id, form);
+        var params = {
+            amount: 1100,
+            description: "The description"
+        }
 
-                // store the card & customer?
-                addToForm(
-                    'store_payment_method',
-                    document.getElementById('store-card').checked,
-                    form
-                );
+        url.search = new URLSearchParams(params).toString();
 
-                // let Statamic & Charge do their things
-                form.submit();
-            }
-        });
+        fetch(url)
+            .then(response => response.json())
+            .then(pi => {
+                stripe.confirmCardPayment(
+                    pi.client_secret,
+                    {
+                        payment_method: {
+                            card: card,
+                            billing_details: {
+                                name: document.getElementById('name').value,
+                                email: document.getElementById('email').value,
+                            }
+                        },
+                        receipt_email: document.getElementById('email').value
+                    }
+                ).then(function(result) {
+                    if (result.error) {
+                        console.log(result.error);
+                        // Display error.message in your UI.
+                    } else {
+                        // The payment has succeeded
+                        // Display a success message
+
+                        // if you want to record the charge id in the order form
+                        // add it to the form
+                        var chargeId = result.paymentIntent.charges.data[0].id;
+
+                        addToForm('charge_id', chargeId, form);
+
+                        // let Statamic & Charge do their things
+                        form.submit();
+                    }
+                });
+            });
     });
-
-    function addToForm(name, value, form) {
-        let input = document.createElement('input');
-
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-
-        form.appendChild(input);
-    }
 </script>
 ```
