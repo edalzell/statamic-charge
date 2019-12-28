@@ -1,9 +1,4 @@
 fields:
-  charge_formsets:
-    type: suggest
-    mode: form
-    display: Forms
-    width: 33
   charge_collections:
     type: suggest
     mode: collections
@@ -39,12 +34,12 @@ fields:
     display: Plans & Roles
   plans_and_roles:
     type: grid
-    display: 'When a user subscribes to a plan, give them a role'
+    display: "When a user subscribes to a plan, give them a role"
     fields:
       plan:
         type: suggest
         mode: charge.stripe_plans
-        display: 'Stripe Plan'
+        display: "Stripe Plan"
         validate: required
         max_items: 1
       billing_day:
@@ -55,7 +50,7 @@ fields:
         default: true
       role:
         type: user_roles
-        display: 'Role to add to user'
+        display: "Role to add to user"
         validate: required
         max_items: 1
     mode: table
