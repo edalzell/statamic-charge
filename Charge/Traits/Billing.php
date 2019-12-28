@@ -1,6 +1,6 @@
 <?php
 
-namespace Statamic\Addons\Charge;
+namespace Statamic\Addons\Charge\Traits;
 
 use Stripe\Plan;
 use Stripe\Token;
@@ -10,7 +10,6 @@ use Stripe\Customer;
 use Statamic\API\Arr;
 use Statamic\API\URL;
 use Statamic\API\User;
-use Statamic\API\Crypt;
 use Statamic\API\Config;
 use Stripe\Subscription;
 use Stripe\PaymentIntent;
@@ -18,13 +17,10 @@ use Stripe\PaymentMethod;
 use Stripe\Checkout\Session;
 use Stripe\Charge as StripeCharge;
 use Statamic\Addons\Charge\Events\CustomerCharged;
-use Statamic\Addons\Charge\Events\CustomerCreated;
 use Statamic\Addons\Charge\Events\CustomerSubscribed;
 
 trait Billing
 {
-    public static $param_key = '_charge_params';
-
     private function createSession(array $params): Session
     {
         $sessionParams = [
@@ -61,13 +57,23 @@ trait Billing
 
     private function createPaymentIntent(array $params): PaymentIntent
     {
-        return PaymentIntent::create([
-            'amount' => Arr::get($params, 'amount'),
-            'description' => Arr::get($params, 'description'),
-            'currency' => Arr::get($params, 'currency', $this->getConfig('currency', 'usd')),
-            'payment_method_types' => ['card'],
-            'setup_future_usage' => 'off_session',
+        $data = Arr::only($params, [
+            'amount',
+            'description',
+            'customer',
+            'currency',
         ]);
+
+        $data['payment_method_types'] = ['card'];
+        $data['setup_future_usage'] = 'off_session';
+
+        $data['currency'] = $data['currency'] ?? $this->getConfig('currency', 'usd');
+
+        if ($metadata = Arr::get($params, 'metadata')) {
+            $data['metadata'] = json_decode(urldecode($metadata), true);
+        }
+
+        return PaymentIntent::create($data);
     }
 
     /**
@@ -206,71 +212,6 @@ trait Billing
     {
         // don't renew at end of period
         $this->getSubscription($subscription_id)->cancel(['cancel_at_period_end' => true]);
-    }
-
-    /**
-     * Get the customer if it exists, otherwise create a new one
-     *
-     * @param $details
-     * @return array
-     */
-    public function getOrCreateCustomer($details)
-    {
-        /** @var \Stripe\Customer $customer */
-        $customer = null;
-        $token = null;
-
-        $email = $details['email'];
-
-        if (isset($details['stripeToken'])) {
-            $token = $details['stripeToken'];
-        }
-
-        if ($customer_id = $this->getCustomerId($email)) {
-            $customer = Customer::retrieve($customer_id);
-
-            if ($token) {
-                // update the payment details
-                $customer->source = $token;
-                $customer->save();
-            }
-        } else {
-            if ($token) {
-                $customer = Customer::create([
-                    'email' => $email,
-                    'source' => $token,
-                ]);
-            } else {
-                $customer = Customer::create(['email' => $email]);
-            }
-
-            event(new CustomerCreated($this->storage, $customer->id, $email));
-            $this->storage->putYAML($email, ['customer_id' => $customer->id]);
-        }
-
-        return $customer->toArray();
-    }
-
-    private function getCustomerId($email)
-    {
-        $yaml = $this->storage->getYAML($email);
-        if ($user = User::email($email)) {
-            if (!($id = $user->get('customer_id'))) {
-                return array_get($yaml, 'customer_id');
-            }
-
-            return $id;
-        }
-
-        return array_get($yaml, 'customer_id');
-    }
-
-    /**
-     * @return array|string
-     */
-    public function decryptParams()
-    {
-        return request()->has(self::$param_key) ? Crypt::decrypt(request(self::$param_key)) : [];
     }
 
     /**
@@ -466,81 +407,11 @@ trait Billing
         });
     }
 
-    /**
-     * Return all the subscription data but merge in the customer details and plan details
-     *
-     * @return array
-     */
-    public function getSubscriptions()
-    {
-        $subscriptions = Subscription::all([
-            'limit' => 100,
-            'expand' => ['data.customer', 'data.plan', 'data.plan.product'],
-        ])->toArray();
-
-        return collect($subscriptions['data'])
-            ->reject(function ($subscription) {
-                return array_get($subscription['plan']['product'], 'deleted', false);
-            })->map(function ($subscription) {
-                return [
-                    'id' => $subscription['id'],
-                    'email' => $subscription['customer']['email'],
-                    'expiry_date' => $subscription['current_period_end'],
-                    'plan' => $subscription['plan']['product']['name'],
-                    'amount' => $subscription['plan']['amount'],
-                    'auto_renew' => !$subscription['cancel_at_period_end'],
-                    'has_subscription' => true,
-                ];
-            })->toArray();
-    }
-
-    /**
-     * Merge the encrypted params (amount, description) with the data & request
-     *
-     * @param $data array
-     * @return array
-     */
-    public function getDetails($data = [])
-    {
-        // gotta merge the email stuff so there's just one
-        $data = array_merge(
-            $data,
-            request()->only([
-                'stripeEmail',
-                'stripeToken',
-                'plan',
-                'description',
-                'amount',
-                'amount_dollar',
-                'email',
-                'coupon',
-                'quantity',
-                'trial_period_days',
-                'store_payment_method',
-                'payment_intent',
-            ]),
-            $this->decryptParams()
-        );
-
-        // if `stripeEmail` is there, use that, otherwise, use `email`
-        $data['email'] = $data['stripeEmail'] ?: $data['email'];
-
-        return $data;
-    }
-
-    public function getRole($plan)
+    public function getRole(string $plan)
     {
         $plan_role = $this->getPlansConfig($plan);
 
         return $plan_role ? $plan_role['role'][0] : null;
-    }
-
-    public function getPlansConfig($plan)
-    {
-        return collect($this->getConfig('plans_and_roles', []))
-            ->first(function ($ignored, $data) use ($plan) {
-                return $plan == array_get($data, 'plan');
-            });
     }
 
     /**

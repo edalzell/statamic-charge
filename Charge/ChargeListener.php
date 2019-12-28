@@ -4,12 +4,14 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
 use Statamic\API\User;
+use Statamic\API\Request;
 use Statamic\Extend\Listener;
 use Statamic\CP\Navigation\Nav;
 use Illuminate\Support\MessageBag;
 use Statamic\CP\Navigation\NavItem;
 use Statamic\Events\Data\UserSaved;
 use Illuminate\Support\ViewErrorBag;
+use Statamic\Addons\Charge\Traits\Billing;
 
 class ChargeListener extends Listener
 {
@@ -20,9 +22,9 @@ class ChargeListener extends Listener
      * @var array
      */
     public $events = [
-        'Form.submission.creating' => 'handlePayment',
-        'content.saving' => 'chargeEntry',
-        'user.registering' => 'register',
+//        'Form.submission.creating' => 'handlePayment',
+//        'content.saving' => 'chargeEntry',
+//        'user.registering' => 'register',
         UserSaved::class => 'updateBilling',
         'Charge.cancel' => 'cancel',
         'Charge.resubscribe' => 'resubscribe',
@@ -44,17 +46,15 @@ class ChargeListener extends Listener
     {
         // only do something if we're on the right formset
         if (in_array($submission->formset()->name(), $this->getConfig('charge_formsets', []))) {
-            try {
-                $charge = $this->charge($this->getDetails($submission->data()));
+            // we need to set the `id` manually so that we can find this submission when we get
+            // the `invoice.payment_succeeded` event. We've added the `submission_id` to the
+            // Payment Intent's `metadata` as `submission_id`
+            $submission->id(Request::get('submission_id'));
+            // $charge = $this->charge($this->getDetails($submission->data()));
 
-                $submission->set('customer_id', $charge['customer']['id']);
+                // $submission->set('customer_id', $charge['customer']['id']);
 
-                $this->flash->put('details', $charge);
-            } catch (\Exception $e) {
-                \Log::error($e->getMessage());
-
-                return ['errors' => [$e->getMessage()]];
-            }
+                // $this->flash->put('details', $charge);
         }
 
         return $submission;

@@ -5,7 +5,7 @@ namespace Statamic\Addons\Charge\Commands;
 use Stripe\Customer;
 use Statamic\API\User;
 use Statamic\Extend\Command;
-use Statamic\Addons\Charge\Billing;
+use Statamic\Addons\Charge\Traits\Billing;
 
 class AddSubscriptionsCommand extends Command
 {

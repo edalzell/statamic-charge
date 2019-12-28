@@ -2,7 +2,6 @@
 
 namespace Statamic\Addons\Charge;
 
-use Stripe\Plan;
 use Stripe\Stripe;
 use Stripe\Customer;
 use Statamic\API\URL;
@@ -12,10 +11,13 @@ use Stripe\SetupIntent;
 use Statamic\Extend\Tags;
 use Stripe\PaymentIntent;
 use Stripe\Checkout\Session;
+use Statamic\Addons\Charge\Traits\Billing;
+use Statamic\Addons\Charge\Traits\HasParameters;
+use Statamic\Addons\Charge\Traits\HasSubscriptions;
 
 class ChargeTags extends Tags
 {
-    use Billing;
+    use Billing, HasParameters, HasSubscriptions;
 
     public function init()
     {
@@ -136,13 +138,18 @@ class ChargeTags extends Tags
         return $this->createForm('update_user', $data);
     }
 
-    private function createForm($action, $data = [])
+    private function createForm(string $action, array $data = [], string $method = 'POST'): string
     {
-        $html = $this->formOpen($action);
+        $html = $this->formOpen($action) . method_field($method);
 
         if ($this->success()) {
             $data['success'] = true;
             $data['details'] = $this->flash->get('details');
+        }
+
+        if ($this->requiresAction()) {
+            $data['requires_action'] = true;
+            $data['client_secret'] = $this->flash->get('client_secret');
         }
 
         if ($this->hasErrors()) {
@@ -152,6 +159,21 @@ class ChargeTags extends Tags
         if ($redirect = $this->getRedirectUrl()) {
             $html .= '<input type="hidden" name="redirect" value="' . $redirect . '" />';
         }
+
+        $params = [];
+        if ($redirect = $this->get('redirect')) {
+            $params['redirect'] = $redirect;
+        }
+
+        if ($error_redirect = $this->get('error_redirect')) {
+            $params['error_redirect'] = $error_redirect;
+        }
+
+        if ($action_needed_redirect = $this->get('action_needed_redirect')) {
+            $params['action_needed_redirect'] = $action_needed_redirect;
+        }
+
+        $html .= '<input type="hidden" name="_params" value="' . Crypt::encrypt($params) . '" />';
 
         return $html . $this->data() . $this->parse($data) . '</form>';
     }
@@ -180,6 +202,11 @@ class ChargeTags extends Tags
     public function success()
     {
         return $this->flash->exists('success');
+    }
+
+    public function requiresAction()
+    {
+        return $this->flash->exists('requires_action');
     }
 
     /**
@@ -228,32 +255,6 @@ class ChargeTags extends Tags
         return $js;
     }
 
-    /**
-     * Get the plan details
-     *
-     * @return string
-     */
-    public function plan()
-    {
-        return $this->parse(Plan::retrieve($this->getParam('plan'))->toArray());
-    }
-
-    /**
-     * Get the Stripe plans
-     *
-     * @return string
-     */
-    public function plans()
-    {
-        $plans = Plan::all(
-            [
-                'expand' => ['data.product'],
-            ]
-        )->toArray();
-
-        return $this->parseLoop($plans['data']);
-    }
-
     public function status()
     {
         $status = $this->get('status', array_get($this->context, 'status', ''));
@@ -269,38 +270,6 @@ class ChargeTags extends Tags
     public function processPayment()
     {
         return '<input type="hidden" name="process_payment" value="true" />';
-    }
-
-    /**
-     * The {{ charge:cancel_subscription_url }} tag
-     *
-     * @return string
-     */
-    public function cancelSubscriptionUrl()
-    {
-        return $this->makeUrl('cancel');
-    }
-
-    /**
-     * The {{ charge:renew_subscription_url }} tag
-     *
-     * @return string
-     */
-    public function renewSubscriptionUrl()
-    {
-        return $this->makeUrl('resubscribe');
-    }
-
-    private function makeUrl($action)
-    {
-        $url = URL::assemble($this->actionUrl($action, false), $this->getParam('subscription_id'));
-
-        // if they want to redirect, add it as a queary param
-        if ($redirect = $this->getParam('redirect')) {
-            $url .= '?redirect=' . $redirect;
-        }
-
-        return $url;
     }
 
     /**

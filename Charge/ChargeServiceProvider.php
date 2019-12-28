@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge;
 
+use Stripe\Stripe;
 use Statamic\API\Config;
 use Statamic\Extend\ServiceProvider;
 
@@ -26,7 +27,7 @@ class ChargeServiceProvider extends ServiceProvider
             'timezone' => Config::get('system.timezone'),
             'version' => $this->getMeta()['version'],
             'addon_name' => $this->getAddonName(),
-            'cp_path' => CP_ROUTE
+            'cp_path' => CP_ROUTE,
         ];
 
         view()->share('charge', $addon);

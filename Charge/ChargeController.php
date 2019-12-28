@@ -3,24 +3,33 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
-use Stripe\Webhook;
 use Stripe\Customer;
 use Statamic\API\Str;
 use Statamic\API\User;
-use Statamic\API\Email;
-use Statamic\API\Config;
-use Statamic\Extend\Controller;
-use Stripe\Error\Authentication;
-use Symfony\Component\Intl\Intl;
-use Statamic\CP\Publish\ValidationBuilder;
 use Illuminate\Http\Request;
+use Statamic\Extend\Controller;
+use Symfony\Component\Intl\Intl;
+use Statamic\Addons\Charge\Traits\Billing;
+use Statamic\CP\Publish\ValidationBuilder;
+use Statamic\Addons\Charge\Traits\HandlesWebhook;
+use Statamic\Addons\Charge\Traits\HasSubscriptions;
+use Statamic\Addons\Charge\Middleware\VerifyWebhookSignature;
 
 class ChargeController extends Controller
 {
-    use Billing;
+    use Billing, HandlesWebhook, HasSubscriptions;
 
-    public function init()
+    /**
+     * Create a new WebhookController instance.
+     *
+     * @return void
+     */
+    public function __construct()
     {
+        if (env('STRIPE_WEBHOOK_SECRET')) {
+            $this->middleware(VerifyWebhookSignature::class);
+        }
+
         Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
     }
 
@@ -43,7 +52,7 @@ class ChargeController extends Controller
         return ['id' => $session->id];
     }
 
-    public function postPaymentIntent(Request $request): array
+    public function getPaymentIntent(Request $request): array
     {
         // @todo add validation
         $pi = $this->createPaymentIntent($request->all());
@@ -168,101 +177,6 @@ class ChargeController extends Controller
     }
 
     /**
-     * Deal with the Stripe events
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    public function postWebhook(Request $request)
-    {
-        $event = null;
-        // verify the events
-        try {
-            $event = Webhook::constructEvent(
-                $request->getContent(),
-                $request->header('Stripe-Signature'),
-                env('STRIPE_ENDPOINT_SECRET')
-            );
-        } catch (\UnexpectedValueException $e) {
-            // Invalid payload
-            return response('Invalid payload', 400);
-        } catch (\Stripe\Error\SignatureVerification $e) {
-            // Invalid signature
-            return response('Invalid signature', 400);
-        }
-
-        $data = $event->data->object;
-
-        // find the right user (w/ the matching Stripe Customer ID)
-        /** @var \Statamic\Data\Users\User $user */
-        if (!($user = $this->whereUser($data->customer))) {
-            return response('No User Found');
-        }
-
-        if ($event->type === 'invoice.upcoming') {
-            $this->sendEmail(
-                $user,
-                'upcoming_payment_email_template',
-                [
-                    'plan' => $user->get('plan'),
-                    'first_name' => $user->get('first_name'),
-                    'last_name' => $user->get('last_name'),
-                    'due_date' => $user->get('subscription_end'),
-                    'amount' => $data->amount,
-                    'currency' => $data->currency,
-                ]
-            );
-        } elseif ($event->type === 'invoice.payment_succeeded') {
-            // update the subscription dates and status
-            $user->set('subscription_start', $data->period_start)
-                ->set('subscription_end', $data->period_end)
-                ->set('subscription_status', 'active')
-                ->save();
-
-        // @todo should we send an email here?
-        } elseif (($event->type === 'invoice.payment_failed') && ($data->next_payment_attempt)) {
-            $user->set('subscription_status', 'past_due');
-            $user->save();
-
-            $this->sendEmail(
-                $user,
-                'payment_failed_email_template',
-                [
-                    'plan' => $user->get('plan'),
-                    'first_name' => $user->get('first_name'),
-                    'last_name' => $user->get('last_name'),
-                    'amount' => $data->amount,
-                    'currency' => $data->currency,
-                    'attempt_count' => $data->attempt_count,
-                    'next_payment_attempt' => $data->next_payment_attempt,
-                ]
-            );
-        } elseif ($event->type === 'customer.subscription.updated') {
-            $this->updateUserSubscription($user, $data->toArray());
-
-            $user->save();
-        } elseif ($event->type === 'customer.subscription.deleted') {
-            $user->set('subscription_status', 'canceled');
-
-            // remove the role from the user
-            $this->removeUserRoles($user, $user->get('plan'));
-
-            // store it
-            $user->save();
-
-            $this->sendEmail(
-                $user,
-                'canceled_email_template',
-                array_only(
-                    $user->data(),
-                    ['plan', 'first_name', 'last_name', 'subscription_end']
-                )
-            );
-        }
-
-        return response('Stripe Webhook processed');
-    }
-
-    /**
      * Cancel a subscription
      */
     public function getCancel($subscription_id = null)
@@ -303,21 +217,6 @@ class ChargeController extends Controller
         $this->flash->put('success', true);
 
         return $redirect ? redirect($redirect) : back();
-    }
-
-    /**
-     * @param $user     \Statamic\Data\Users\User
-     * @param $template string
-     * @param $data     array
-     */
-    private function sendEmail($user, $template, $data)
-    {
-        Email::to($user->email())
-            ->from($this->getConfig('from_email'))
-            ->in('site/themes/' . Config::getThemeName() . '/templates')
-            ->template($this->getConfig($template))
-            ->with($data)
-            ->send();
     }
 
     /**
