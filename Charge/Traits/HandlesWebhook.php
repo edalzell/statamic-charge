@@ -13,6 +13,7 @@ use Statamic\Data\Users\User;
 use Statamic\API\User as UserAPI;
 use Statamic\Addons\Charge\Actions\SendEmailAction;
 use Statamic\Addons\Charge\Actions\CreateCustomerAction;
+use Statamic\Addons\Charge\Actions\UpdateUserRolesAction;
 
 trait HandlesWebhook
 {
@@ -37,14 +38,17 @@ trait HandlesWebhook
             });
         }
 
+        if (!$this->user) {
+            return $this->successMethod();
+        }
+
         $method = 'handle' . Str::studly(str_replace('.', '_', $payload['type']));
 
         if (method_exists($this, $method)) {
             return $this->{$method}($data);
         }
 
-        // send back blank successful response, even if we did nothing
-        return new Response();
+        return $this->successMethod();
     }
 
     private function handlePaymentIntentSucceeded($data): Response
@@ -55,7 +59,7 @@ trait HandlesWebhook
         if ($user && !$user->get('customer_id')) {
             $action = new CreateCustomerAction();
 
-            $customer = $action->execute($user, $data['payment_method']);
+            $customer = $action->execute($user->email(), $data['payment_method']);
             $user->set('customer_id', $customer->id);
             $user->save();
         }
@@ -63,17 +67,21 @@ trait HandlesWebhook
         return $this->successMethod();
     }
 
-    private function handleInvoicePaymentSucceeded($data): Response
+    private function handleCustomerSubscriptionCreated($data): Response
     {
-        $item = $data['lines']['data'][0];
+        $oldPlan = $this->user->get('plan');
 
         // update the subscription dates and status
         $this->user
-            ->set('plan', $item['plan']['id'])
-            ->set('subscription_start', $data['period_start'])
-            ->set('subscription_end', $data['period_end'])
+            ->set('plan', $data['plan']['id'])
+            ->set('subscription_start', $data['current_period_start'])
+            ->set('subscription_end', $data['current_period_end'])
             ->set('subscription_status', 'active')
             ->save();
+
+        $action = new UpdateUserRolesAction($this->user, json_decode($data['metadata']['plan_config'], true));
+
+        $action->execute($data['plan']['id'], $oldPlan);
 
         return $this->successMethod();
     }

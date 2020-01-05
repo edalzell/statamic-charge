@@ -25,7 +25,9 @@ trait HasSubscriptions
             'payment_method' => 'required',
         ]);
 
-        $details = $this->getDetails($request, $this->getPlansConfig($request->input('plan')));
+        $planConfig = $this->getPlansConfig($request->input('plan'));
+
+        $details = $this->getDetails($request, $planConfig);
 
         $customer = $this->getOrCreateCustomer($details['payment_method']);
 
@@ -65,6 +67,9 @@ trait HasSubscriptions
         } else {
             $subscription['trial_period_days'] = $trialDays;
         }
+
+        // add metadata
+        $subscription['metadata']['plan_config'] = json_encode($planConfig);
 
         $subscription = Subscription::create($subscription);
 
