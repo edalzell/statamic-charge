@@ -25,7 +25,7 @@ class ChargeListener extends Listener
 //        'Form.submission.creating' => 'handlePayment',
 //        'content.saving' => 'chargeEntry',
 //        'user.registering' => 'register',
-        UserSaved::class => 'updateBilling',
+//        UserSaved::class => 'updateBilling',
         'Charge.cancel' => 'cancel',
         'Charge.resubscribe' => 'resubscribe',
         'cp.nav.created' => 'nav',
