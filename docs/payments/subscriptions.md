@@ -24,11 +24,11 @@ Please see the [documentation](https://stripe.com/docs/billing/subscriptions/) t
 You must set up the [webhooks](https://stripe.com/docs/billing/webhooks), use `https://yoursite.com/!/Charge/webhook` as the endpoint and make to at least "listen" for:
 
 * payment_intent.succeeded
-* invoice.payment.succeeded
+* invoice.payment_succeeded
 * invoice.upcoming
 * invoice.payment_failed
-* customer.subscription_updated
-* customer.subscription_deleted
+* customer.subscription.updated
+* customer.subscription.deleted
 
 To test you can use `valet share` or a service like Ultrahook.
 
