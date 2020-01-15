@@ -4,20 +4,15 @@ namespace Statamic\Addons\Charge\Traits;
 
 use Stripe\Plan;
 use Stripe\Token;
-use Carbon\Carbon;
 use Stripe\Refund;
 use Stripe\Customer;
 use Statamic\API\Arr;
 use Statamic\API\URL;
 use Statamic\API\User;
-use Statamic\API\Config;
 use Stripe\Subscription;
 use Stripe\PaymentIntent;
-use Stripe\PaymentMethod;
 use Stripe\Checkout\Session;
 use Stripe\Charge as StripeCharge;
-use Statamic\Addons\Charge\Events\CustomerCharged;
-use Statamic\Addons\Charge\Events\CustomerSubscribed;
 
 trait Billing
 {
@@ -74,115 +69,6 @@ trait Billing
         }
 
         return PaymentIntent::create($data);
-    }
-
-    /**
-     * Make the appropriate charge, either a one time or a subscription
-     *
-     * @param array $details   charging details
-     * @param \Statamic\Data\Users\User $user
-     *
-     * @return array           details of the charge
-     */
-    public function charge($details, $user = null)
-    {
-        $result = [];
-
-        // always make a customer
-        /** @var \Stripe\Customer $customer */
-        $customer = $this->getOrCreateCustomer($details);
-        $result['customer'] = $customer;
-
-        $details['customer'] = $customer['id'];
-
-        // is this a subscription?
-        if (isset($details['plan'])) {
-            $result['subscription'] = $this->subscribe($details);
-            $this->updateUser($user ?? User::getCurrent(), $result, true);
-        } else {
-            $result['charge'] = $this->oneTimeCharge($details);
-        }
-
-        return $result;
-    }
-
-    public function oneTimeCharge($details)
-    {
-        /** @var PaymentIntent $intent */
-        $intent = PaymentIntent::retrieve($details['payment_intent']);
-
-        // if there's a payment intent, store the payment method w/ the Customer
-        if (bool(Arr::get($details, 'store_payment_method', false))) {
-            // attach the payment method to the customer
-            PaymentMethod::retrieve($intent->payment_method)->attach(['customer' => $details['customer']]);
-        }
-
-        /** @var StripeCharge $charge */
-        $charge = $intent->charges->data[0]->toArray();
-
-        event(new CustomerCharged($charge));
-
-        return $charge;
-    }
-
-    /**
-     * @param array $details
-     *
-     * @return array
-     */
-    public function subscribe($details)
-    {
-        /*
-            if there's a fixed billing date set the billing-cycle-anchor
-            if prorate, set prorate to true
-        */
-
-        $plan = Plan::retrieve(['id' => $details['plan'], 'expand' => ['product']]);
-
-        $plansConfig = $this->getPlansConfig($details['plan']);
-        $trialDays = array_get($details, 'trial_period_days', 0);
-
-        if ($billingDay = array_get($plansConfig, 'billing_day')) {
-            $trialDays = Carbon::now()->diffInDays(Carbon::now()->addMonths(2)->day($billingDay));
-
-            // we need to bill them the same amount as the plan, immediately
-            /** @var \Stripe\Charge $charge */
-            StripeCharge::create([
-                'customer' => $details['customer'],
-                'amount' => $plan->amount * array_get($details, 'quantity', 1),
-                'currency' => $plan->currency,
-                'description' => $plan->product->statement_descriptor,
-            ]);
-        }
-
-        $subscription = [
-            'customer' => $details['customer'],
-            'items' => [
-                [
-                    'plan' => $details['plan'],
-                    'quantity' => array_get($details, 'quantity', 1),
-                ],
-            ],
-            'prorate' => array_get($plansConfig, 'prorate', true),
-            'coupon' => array_get($details, 'coupon'),
-            'expand' => ['latest_invoice.payment_intent'],
-        ];
-
-        if ($plan->trial_period_days) {
-            $subscription['trial_from_plan'] = true;
-        } else {
-            $subscription['trial_period_days'] = $trialDays;
-        }
-        // charge them
-        $subscription = Subscription::create($subscription)->toArray();
-
-        dd($subscription);
-
-        // subscription.status = 'incomplete`
-        // subscription.payment_intent.status = 'requires_action'
-        event(new CustomerSubscribed($subscription));
-
-        return $subscription;
     }
 
     public function resubscribe($id)
@@ -411,33 +297,5 @@ trait Billing
         $details['subscriptions'] = $details['subscriptions']['data'];
 
         return $details;
-    }
-
-    /**
-     * Return the proper action link, based on if the subscription is set to auto-renew
-     *
-     * @param array $subscription
-     *
-     * @return string
-     */
-    public static function getActionLink($subscription)
-    {
-        $action = $subscription['auto_renew'] ? 'cancel' : 'resubscribe';
-
-        return '<a href="' . URL::assemble($action, $subscription['id']) . '">' . ucfirst($action) . '</a>';
-    }
-
-    /**
-     * This converts from a UTC timestamp to a DateTime in the local PHP timezone
-     *
-     * @param $timestamp int timestamp
-     * @return \DateTime
-     */
-    public static function getLocalDateTimeFromUTC($timestamp)
-    {
-        /*
-         * Convert to the server timezone
-         */
-        return carbon('@' . $timestamp, 'Etc/UTC')->tz(Config::get('system.timezone'));
     }
 }
