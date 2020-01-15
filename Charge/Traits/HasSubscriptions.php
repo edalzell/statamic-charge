@@ -101,6 +101,19 @@ trait HasSubscriptions
         return $this->subscriptionSuccess($subscription, []);
     }
 
+    public function deleteSubscription(Request $request)
+    {
+        $user = User::getCurrent();
+
+        $subscription = Subscription::retrieve($user->get('subscription_id'));
+
+        $subscription->cancel_at_period_end = true;
+
+        $subscription->save();
+
+        return $this->subscriptionSuccess($subscription, []);
+    }
+
     /**
      * The {{ charge:create_subscription_form }} tag
      *
@@ -119,6 +132,16 @@ trait HasSubscriptions
     public function updateSubscriptionForm()
     {
         return $this->createForm('subscription', [], 'PATCH');
+    }
+
+    /**
+     * The {{ charge:cancel_subscription_form }} tag
+     *
+     * @return string
+     */
+    public function cancelSubscriptionForm()
+    {
+        return $this->createForm('subscription', [], 'DELETE');
     }
 
     /**

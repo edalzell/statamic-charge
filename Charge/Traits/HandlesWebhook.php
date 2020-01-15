@@ -141,7 +141,7 @@ trait HandlesWebhook
             ->set('subscription_id', $data['id'])
             ->set('subscription_start', $data['current_period_start'])
             ->set('subscription_end', $data['current_period_end'])
-            ->set('subscription_status', 'active')
+            ->set('subscription_status', $data['cancel_at_period_end'] ? 'canceled' : 'active')
             ->save();
 
         $action = new UpdateUserRolesAction($this->user, $this->getPlansAndRoles());
