@@ -317,27 +317,6 @@ trait Billing
 
     /**
      * @param \Statamic\Data\Users\User $user
-     * @param $subscription array
-     */
-    public function updateUserSubscription($user, $subscription)
-    {
-        $user->set('plan', $subscription['plan']['id']);
-        $user->set('subscription_id', $subscription['id']);
-        $user->set('subscription_start', $subscription['current_period_start']);
-        $user->set('subscription_end', $subscription['current_period_end']);
-
-        // if the subscription is canceled at period end, manually set the status
-        if (array_get($subscription, 'cancel_at_period_end', false)) {
-            $user->set('subscription_status', 'canceling');
-        } else {
-            $user->set('subscription_status', $subscription['status']);
-        }
-
-        $user->save();
-    }
-
-    /**
-     * @param \Statamic\Data\Users\User $user
      * @param $plan string
      */
     public function updateUserRoles($user, $new_plan, $old_plan)
