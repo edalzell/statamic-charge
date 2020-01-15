@@ -8,7 +8,7 @@ use Statamic\API\Str;
 use Statamic\API\User;
 use Illuminate\Http\Request;
 use Statamic\Extend\Controller;
-use Symfony\Component\Intl\Intl;
+use Symfony\Component\Intl\Currencies;
 use Statamic\Addons\Charge\Traits\Billing;
 use Statamic\CP\Publish\ValidationBuilder;
 use Statamic\Addons\Charge\Traits\HandlesWebhook;
@@ -89,7 +89,7 @@ class ChargeController extends Controller
     {
         // get currency symbol
         $currency = Str::upper($this->getConfig('currency', 'usd'));
-        $currency_symbol = Intl::getCurrencyBundle()->getCurrencySymbol($currency);
+        $currency_symbol = Currencies::getSymbol($currency);
         $charges = $this->getCharges();
 
         return $this->view('lists.charges', compact('currency_symbol', 'charges'));
