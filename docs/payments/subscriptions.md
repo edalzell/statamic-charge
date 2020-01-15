@@ -23,9 +23,9 @@ Please see the [documentation](https://stripe.com/docs/billing/subscriptions/) t
 
 You must set up the [webhooks](https://stripe.com/docs/billing/webhooks), use `https://yoursite.com/!/Charge/webhook` as the endpoint and make to at least "listen" for:
 
-* customer.subscription_created
-* customer.subscription_deleted
-* customer.subscription_updated
+* customer.subscription.created
+* customer.subscription.deleted
+* customer.subscription.updated
 * invoice.upcoming
 * invoice.payment_failed
 * payment_intent.succeeded
