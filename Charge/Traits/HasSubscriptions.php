@@ -7,8 +7,8 @@ use Carbon\Carbon;
 use Stripe\Charge;
 use Statamic\API\Arr;
 use Statamic\API\URL;
+use Statamic\API\User;
 use Stripe\Subscription;
-use Statamic\Config\Addons;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
@@ -25,9 +25,9 @@ trait HasSubscriptions
             'payment_method' => 'required',
         ]);
 
-        $planConfig = $this->getPlansConfig($request->input('plan'));
+//        $planConfig = $this->getPlansConfig($request->input('plan'));
 
-        $details = $this->getDetails($request, $planConfig);
+        $details = $this->getDetails($request);
 
         $customer = $this->getOrCreateCustomer($details['payment_method']);
 
@@ -69,7 +69,7 @@ trait HasSubscriptions
         }
 
         // add metadata
-        $subscription['metadata']['plan_config'] = json_encode($planConfig);
+//        $subscription['metadata']['plan_config'] = json_encode($planConfig);
 
         $subscription = Subscription::create($subscription);
 
@@ -84,6 +84,21 @@ trait HasSubscriptions
         }
 
         return $this->subscriptionSuccess($subscription, $details);
+    }
+
+    public function patchSubscription(Request $request)
+    {
+        $user = User::getCurrent();
+        $plan = $request->get('plan');
+
+        $subscription = Subscription::retrieve($user->get('subscription_id'));
+
+        $subscription->quantity = $request->get('quantity', 1);
+        $subscription->plan = $plan;
+
+        $subscription->save();
+
+        return $this->subscriptionSuccess($subscription, []);
     }
 
     /**
@@ -103,7 +118,7 @@ trait HasSubscriptions
      */
     public function updateSubscriptionForm()
     {
-        return $this->createForm('subscription', [], 'PUT');
+        return $this->createForm('subscription', [], 'PATCH');
     }
 
     /**
@@ -232,16 +247,5 @@ trait HasSubscriptions
         }
 
         return back();
-    }
-
-    private function getPlansConfig(string $plan): array
-    {
-        $config = app(Addons::class)->get('charge') ?: [];
-        $plansAndRoles = Arr::get($config, 'plans_and_roles', []);
-
-        return collect($plansAndRoles)
-            ->first(function ($ignored, $data) use ($plan) {
-                return $plan == Arr::get($data, 'plan');
-            });
     }
 }

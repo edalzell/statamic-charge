@@ -2,11 +2,9 @@
 
 namespace Statamic\Addons\Charge\Traits;
 
-use Stripe\Customer;
 use Statamic\API\Arr;
 use Statamic\API\Str;
-use Statamic\API\Email;
-use Stripe\Subscription;
+use Statamic\Config\Addons;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Statamic\Data\Users\User;
@@ -69,19 +67,18 @@ trait HandlesWebhook
 
     private function handleCustomerSubscriptionCreated($data): Response
     {
-        $oldPlan = $this->user->get('plan');
-
         // update the subscription dates and status
         $this->user
             ->set('plan', $data['plan']['id'])
+            ->set('subscription_id', $data['id'])
             ->set('subscription_start', $data['current_period_start'])
             ->set('subscription_end', $data['current_period_end'])
             ->set('subscription_status', 'active')
             ->save();
 
-        $action = new UpdateUserRolesAction($this->user, json_decode($data['metadata']['plan_config'], true));
+        $action = new UpdateUserRolesAction($this->user, $this->getPlansAndRoles());
 
-        $action->execute($data['plan']['id'], $oldPlan);
+        $action->execute($data['plan']['id']);
 
         return $this->successMethod();
     }
@@ -136,9 +133,20 @@ trait HandlesWebhook
 
     private function handleCustomerSubscriptionUpdated($data): Response
     {
-        $this->updateUserSubscription($this->user, $data->toArray());
+        $oldPlan = $this->user->get('plan');
 
-        $this->user->save();
+        // update the subscription dates and status
+        $this->user
+            ->set('plan', $data['plan']['id'])
+            ->set('subscription_id', $data['id'])
+            ->set('subscription_start', $data['current_period_start'])
+            ->set('subscription_end', $data['current_period_end'])
+            ->set('subscription_status', 'active')
+            ->save();
+
+        $action = new UpdateUserRolesAction($this->user, $this->getPlansAndRoles());
+
+        $action->execute($data['plan']['id'], $oldPlan);
 
         return $this->successMethod();
     }
@@ -174,5 +182,12 @@ trait HandlesWebhook
     protected function successMethod()
     {
         return new Response('Webhook Handled', 200);
+    }
+
+    private function getPlansAndRoles(): array
+    {
+        $config = app(Addons::class)->get('charge') ?: [];
+
+        return Arr::get($config, 'plans_and_roles', []);
     }
 }

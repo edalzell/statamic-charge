@@ -2,44 +2,47 @@
 
 namespace Statamic\Addons\Charge\Actions;
 
+use Statamic\API\Arr;
 use Statamic\Data\Users\User;
 
 class UpdateUserRolesAction
 {
-    private array $planConfig;
-    private User $user;
+    /** @var array */
+    private $plansAndRoles;
 
-    public function __construct(User $user, array $planConfig)
+    /** @var User */
+    private $user;
+
+    public function __construct(User $user, array $plansAndRoles)
     {
         $this->user = $user;
-        $this->planConfig = $planConfig;
+        $this->plansAndRoles = $plansAndRoles;
     }
 
-    public function execute(string $newPlan, $oldPlan)
+    public function execute(string $newPlan, string $oldPlan = null)
     {
         $this->removeUserRoles($oldPlan);
         $this->addUserRoles($newPlan);
-        $this->user->set('plan', $newPlan);
         $this->user->save();
     }
 
     public function removeUserRoles($plan)
     {
-        // remove the role from the user
-        // get the role associated w/ this plan
-        if ($plan && $role = $this->getRole()) {
+        if ($plan && $role = $this->getRole($plan)) {
             // remove role from user
             $roles = array_filter($this->user->get('roles', []), function ($item) use ($role) {
                 return $item != $role;
             });
 
             $this->user->set('roles', $roles);
+
+            $this->user->save();
         }
     }
 
     public function addUserRoles($plan)
     {
-        if ($role = $this->getRole()) {
+        if ($role = $this->getRole($plan)) {
             // get the user's roles
             $roles = $this->user->get('roles', []);
 
@@ -48,11 +51,25 @@ class UpdateUserRolesAction
 
             // set the user's roles
             $this->user->set('roles', array_unique($roles));
+
+            $this->user->save();
         }
     }
 
-    public function getRole()
+    public function getRole($plan)
     {
-        return $this->planConfig ? $this->planConfig['role'][0] : null;
+        $config = collect($this->plansAndRoles)
+            ->first(function ($ignored, $data) use ($plan) {
+                return $plan == Arr::get($data, 'plan');
+            });
+
+        return $config ? $config['role'][0] : null;
     }
+
+    // private function getPlansConfig(string $plan): array
+    // {
+    //     $config = app(Addons::class)->get('charge') ?: [];
+    //     $plansAndRoles = Arr::get($config, 'plans_and_roles', []);
+
+    // }
 }
