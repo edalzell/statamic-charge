@@ -87,8 +87,13 @@ For Workshop entry creation, add `{{ charge:process_payment }}` to the template 
 
 ### Tags ###
 
-* Cancel - `{{ charge:cancel_subscription_url }}` - creates a URL to cancel a subscription. Pass in the `subscription_id`.
-    * example `<a href="{{ charge:cancel_subscription_url :subscription_id="subscription_id }}">Cancel Subscription</a>`
+* Cancel - `{{ charge:cancel_subscription_form }}` - creates a form to cancel a subscription. It uses the current logged in users' subscription.
+    * example
+```
+{{ charge:cancel_subscription_form }}
+    <button id="payment-button">Cancel</button>
+{{ /charge:cancel_subscription_form }}
+```
 * Resubscribe - `{{ charge:renew_subscription_url }}` - creates a URL to resubscribe to a subscription. Pass in the `subscription_id`
 * Success - `{{ charge:success }}` - was the last action/transaction successful?
 * Errors - `{{ charge:errors }}` - if there were errors, they'll be in here
