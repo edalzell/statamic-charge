@@ -72,7 +72,10 @@ class ChargeController extends Controller
         try {
             $customers = Customer::all(['limit' => 100])->toArray();
 
-            $data = ['customers' => $customers['data']];
+            $data = [
+                'customers' => $customers['data'],
+                'title' => 'Customers',
+            ];
         } catch (Authentication $e) {
             $data = ['derp' => 'Please set your <a href="https://dashboard.stripe.com/account/apikeys">STRIPE_SECRET_KEY</a> in your .env file'];
         }
@@ -87,12 +90,14 @@ class ChargeController extends Controller
      */
     public function charges()
     {
-        // get currency symbol
-        $currency = Str::upper($this->getConfig('currency', 'usd'));
-        $currency_symbol = Currencies::getSymbol($currency);
-        $charges = $this->getCharges();
-
-        return $this->view('lists.charges', compact('currency_symbol', 'charges'));
+        return $this->view(
+            'lists.charges',
+            [
+                'currency_symbol' => Currencies::getSymbol(Str::upper($this->getConfig('currency', 'usd'))),
+                'charges' => $this->getCharges(),
+                'title' => 'Charges',
+            ]
+        );
     }
 
     /**
@@ -106,6 +111,7 @@ class ChargeController extends Controller
             'lists.subscriptions',
             [
                 'subscriptions' => $this->getSubscriptions(),
+                'title' => 'Subscriptions',
             ]
         );
     }
