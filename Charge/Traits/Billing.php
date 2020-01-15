@@ -435,16 +435,9 @@ trait Billing
      */
     public static function getLocalDateTimeFromUTC($timestamp)
     {
-        /** @var \Carbon\Carbon $dt */
-        $dt = new Carbon('@' . $timestamp, 'Etc/UTC');
-
         /*
          * Convert to the server timezone
          */
-        return $dt->tz(Config::get('system.timezone'));
-    }
-
-    public function addError()
-    {
+        return carbon('@' . $timestamp, 'Etc/UTC')->tz(Config::get('system.timezone'));
     }
 }
