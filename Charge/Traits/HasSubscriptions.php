@@ -7,11 +7,11 @@ use Carbon\Carbon;
 use Stripe\Charge;
 use Statamic\API\Arr;
 use Statamic\API\URL;
-use Statamic\API\User;
 use Stripe\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
+use Statamic\API\Request as StatamicRequest;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 
 trait HasSubscriptions
@@ -86,30 +86,31 @@ trait HasSubscriptions
         return $this->subscriptionSuccess($subscription, $details);
     }
 
-    public function patchSubscription(Request $request)
+    public function patchSubscription($id)
     {
-        $user = User::getCurrent();
-        $plan = $request->get('plan');
+        $subscription = Subscription::retrieve($id);
 
-        $subscription = Subscription::retrieve($user->get('subscription_id'));
-
-        $subscription->quantity = $request->get('quantity', 1);
-        $subscription->plan = $plan;
+        $subscription->quantity = request('quantity', 1);
+        $subscription->plan = request('plan');
 
         $subscription->save();
 
         return $this->subscriptionSuccess($subscription, []);
     }
 
-    public function deleteSubscription(Request $request)
+    public function deleteSubscription($id)
     {
-        $user = User::getCurrent();
-
-        $subscription = Subscription::retrieve($user->get('subscription_id'));
+        $subscription = Subscription::retrieve($id);
 
         $subscription->cancel_at_period_end = true;
 
         $subscription->save();
+
+        // if CP then do what??
+        if (StatamicRequest::isCP()) {
+            return back();
+        }
+        // if from front end then
 
         return $this->subscriptionSuccess($subscription, []);
     }
@@ -131,7 +132,7 @@ trait HasSubscriptions
      */
     public function updateSubscriptionForm()
     {
-        return $this->createForm('subscription', [], 'PATCH');
+        return $this->createForm('subscription/' . $this->getParam('id'), [], 'PATCH');
     }
 
     /**
@@ -141,7 +142,7 @@ trait HasSubscriptions
      */
     public function cancelSubscriptionForm()
     {
-        return $this->createForm('subscription', [], 'DELETE');
+        return $this->createForm('subscription/' . $this->getParam('id'), [], 'DELETE');
     }
 
     /**
