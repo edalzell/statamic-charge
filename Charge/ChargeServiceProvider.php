@@ -3,6 +3,7 @@
 namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
+use Statamic\API\URL;
 use Statamic\API\Config;
 use Statamic\Extend\ServiceProvider;
 
@@ -28,6 +29,7 @@ class ChargeServiceProvider extends ServiceProvider
             'version' => $this->getMeta()['version'],
             'addon_name' => $this->getAddonName(),
             'cp_path' => CP_ROUTE,
+            'addon_cp_route' => URL::assemble(CP_ROUTE, 'addons', strtolower($this->getAddonName())),
         ];
 
         view()->share('charge', $addon);
