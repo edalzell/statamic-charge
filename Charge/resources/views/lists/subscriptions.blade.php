@@ -18,7 +18,13 @@
         <td>${{ number_format($subscription['amount'] / 100, 2) }}</td>
         <td>{{ $subscription['auto_renew'] ? 'Yes' : 'No' }}</td>
         <td>{{ date('M j, Y', $subscription['expiry_date']) }}</td>
-        <td>{!! \Statamic\Addons\Charge\Utils::getActionLink($subscription) !!}</td>
+        <td>
+            <form method="POST" action="subscription/{{ $subscription['id'] }}">
+                {{ csrf_field() }}
+                {{ method_field('DELETE') }}
+                <button type="submit">Cancel</button>
+            </form>
+        </td>
     </tr>
     @endforeach
 </table>
