@@ -148,18 +148,27 @@ trait HandlesWebhook
 
         $action->execute($data['plan']['id'], $oldPlan);
 
+        // send email
+
         return $this->successMethod();
     }
 
     private function handleCustomerSubscriptionDeleted($data): Response
     {
-        $this->user->set('subscription_status', 'canceled');
+        $oldPlan = $this->user->get('plan');
 
-        // remove the role from the user
-        $this->removeUserRoles($this->user, $this->user->get('plan'));
+        // update the subscription dates and status
+        $this->user
+            ->set('plan', $data['plan']['id'])
+            ->set('subscription_id', $data['id'])
+            ->set('subscription_start', $data['current_period_start'])
+            ->set('subscription_end', $data['current_period_end'])
+            ->set('subscription_status', 'canceled')
+            ->save();
 
-        // store it
-        $this->user->save();
+        $action = new UpdateUserRolesAction($this->user, $this->getPlansAndRoles());
+
+        $action->execute(null, $oldPlan);
 
         (new SendEmailAction)->execute(
             $this->user,
