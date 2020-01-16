@@ -27,3 +27,5 @@ routes:
 
   # resubscribe the given subscription id
   /resubscribe/{id}: getResubscribe
+
+  delete@subscription/{id}: deleteSubscription
