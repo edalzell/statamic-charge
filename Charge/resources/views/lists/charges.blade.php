@@ -19,7 +19,7 @@
         <td>{{ $charge['description'] }}</td>
         <td>{{ $currency_symbol }}{{ number_format($charge['amount'] / 100, 2) }}</td>
         <td><a href="refund/{{ $charge['id'] }}" class="confirmation">Refund</a></td>
-        <td><a href="https://dashboard.stripe.com/payments/{{ $charge['id'] }}">Transaction</a></td>
+        <td><a href="https://dashboard.stripe.com/payments/{{ $charge['id'] }}" target="_blank">Transaction</a></td>
     </tr>
     @endforeach
 </table>
