@@ -9,26 +9,6 @@ fields:
     validate: required
     width: 33
     default: usd
-  statuses_section:
-    type: section
-    display: Statuses
-    instructions: What would you like to call the statuses?
-  active:
-    type: text
-    default: Active
-    width: 25
-  canceling:
-    type: text
-    default: Canceling
-    width: 25
-  past_due:
-    type: text
-    default: Past Due
-    width: 25
-  canceled:
-    type: text
-    default: Canceled
-    width: 25
   roles_section:
     type: section
     display: Plans & Roles
