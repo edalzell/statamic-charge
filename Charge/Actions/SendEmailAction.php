@@ -16,18 +16,12 @@ class SendEmailAction
         $this->config = app(Addons::class)->get('charge');
     }
 
-    /**
-     * @param $user     \Statamic\Data\Users\User
-     * @param $template string
-     * @param $data     array
-     */
-    public function execute($user, $template, $data)
+    public function execute(string $email, string $template, array $data)
     {
-//        Config::
-        Email::to($user->email())
+        Email::to($email)
             ->from($this->from())
             ->in($this->themeFolder())
-            ->template($this->getConfig($template))
+            ->template($this->template($template))
             ->with($data)
             ->send();
     }
@@ -42,8 +36,8 @@ class SendEmailAction
         return 'site/themes/' . Config::getThemeName() . '/templates';
     }
 
-    private function template()
+    private function template($template)
     {
-        return Arr::get($this->config, 'template');
+        return Arr::get($this->config, $template);
     }
 }

@@ -36,9 +36,9 @@ trait HandlesWebhook
             });
         }
 
-        if (!$this->user) {
-            return $this->successMethod();
-        }
+        // if (!$this->user) {
+        //     return $this->successMethod();
+        // }
 
         $method = 'handle' . Str::studly(str_replace('.', '_', $payload['type']));
 
@@ -61,6 +61,17 @@ trait HandlesWebhook
             $user->set('customer_id', $customer->id);
             $user->save();
         }
+
+        (new SendEmailAction)->execute(
+            $data['receipt_email'],
+            'one_time_payment_email_template',
+            [
+                'amount' => Arr::get($data, 'charges.data.0.amount'),
+                'currency' => Arr::get($data, 'charges.data.0.currency'),
+                'description' => Arr::get($data, 'charges.data.0.description'),
+                'receipt_url' => Arr::get($data, 'charges.data.0.receipt_url'),
+            ]
+        );
 
         return $this->successMethod();
     }
@@ -86,7 +97,7 @@ trait HandlesWebhook
     private function handleInvoiceUpcoming($data): Response
     {
         (new SendEmailAction)->execute(
-            $this->user,
+            $this->user->email(),
             'upcoming_payment_email_template',
             [
                 'plan' => $this->user->get('plan'),
@@ -101,6 +112,25 @@ trait HandlesWebhook
         return $this->successMethod();
     }
 
+    private function handleInvoicePaymentSucceeded($data)
+    {
+        (new SendEmailAction)->execute(
+            $this->user->email(),
+            'payment_succeeded_email_template',
+            [
+                'plan' => $this->user->get('plan'),
+                'first_name' => $this->user->get('first_name'),
+                'last_name' => $this->user->get('last_name'),
+                'amount' => $data['amount_due'],
+                'currency' => $data['currency'],
+                'attempt_count' => $data['attempt_count'],
+                'next_payment_attempt' => $data['next_payment_attempt'],
+            ]
+        );
+
+        return $this->successMethod();
+    }
+
     private function handleInvoicePaymentFailed($data)
     {  // @todo should we send an email here?
         if ($data['next_payment_attempt']) {
@@ -108,7 +138,7 @@ trait HandlesWebhook
             $this->user->save();
 
             (new SendEmailAction)->execute(
-                $this->user,
+                $this->user->email(),
                 'payment_failed_email_template',
                 [
                     'plan' => $this->user->get('plan'),

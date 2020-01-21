@@ -60,13 +60,35 @@ fields:
     display: Email Settings
   from_email:
     type: text
-    width: 25
+    width: 33
+    default: false
+  one_time_payment_email_template:
+    type: template
+    display: One Time Payment Email
+    width: 33
+    show_when:
+      use_stripe_emails: false
   canceled_email_template:
     type: template
-    width: 25
-  payment_failed_email_template:
-    type: template
-    width: 25
+    display: Canceled Email
+    width: 33
+    show_when:
+      use_stripe_emails: false
   upcoming_payment_email_template:
     type: template
-    width: 25
+    display: Upcoming Payment Email
+    width: 33
+    show_when:
+      use_stripe_emails: false
+  payment_succeeded_email_template:
+    type: template
+    display: Payment Succeeded Email
+    width: 33
+    show_when:
+      use_stripe_emails: false
+  payment_failed_email_template:
+    type: template
+    display: Payment Failed Email
+    width: 33
+    show_when:
+      use_stripe_emails: false
