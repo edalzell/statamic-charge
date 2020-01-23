@@ -8,7 +8,7 @@ There are [two ways](https://stripe.com/docs/web) to take payment with Stripe, [
 
 Please see the [documentation](https://stripe.com/docs/payments/checkout/server) on the client JS you need.
 
-**NOTE:** the `redirectToCheckout` does NOT work well with Statamic's `form` and `user` form tags as the redirect happens and form submission does not. In generat, use Elements (see below) instead.
+**NOTE:** the `redirectToCheckout` does NOT work well with Statamic's `form` and `user` form tags as the redirect happens and form submission does not. In general, use Elements (see below) instead.
 
 You can get the Session ID two ways, with a tag, or via AJAX.
 
