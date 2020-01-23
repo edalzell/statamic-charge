@@ -32,7 +32,7 @@ You must set up the [webhooks](https://stripe.com/docs/billing/webhooks), use `h
 * invoice.payment_failed
 * payment_intent.succeeded
 
-To test you can use `valet share` or a service like Ultrahook.
+To test you can use `valet share` or a service like [Ultrahook](http://www.ultrahook.com).
 
 ## Flow
 
