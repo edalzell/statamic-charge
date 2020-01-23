@@ -12,12 +12,13 @@ use Statamic\Extend\Tags;
 use Stripe\PaymentIntent;
 use Stripe\Checkout\Session;
 use Statamic\Addons\Charge\Traits\Billing;
+use Statamic\Addons\Charge\Traits\HasCustomers;
 use Statamic\Addons\Charge\Traits\HasParameters;
 use Statamic\Addons\Charge\Traits\HasSubscriptions;
 
 class ChargeTags extends Tags
 {
-    use Billing, HasParameters, HasSubscriptions;
+    use Billing, HasParameters, HasSubscriptions, HasCustomers;
 
     public function init()
     {
@@ -97,19 +98,6 @@ class ChargeTags extends Tags
     public function updateCustomerForm()
     {
         return $this->updateBillingForm();
-    }
-
-    /**
-     * The {{ charge:update_billing_form }} tag
-     *
-     * @return string|array
-     */
-    public function updateBillingForm()
-    {
-        return $this->createForm(
-            'update_billing',
-            $this->getCustomerDetails($this->getParam('customer_id'))
-        );
     }
 
     /**
