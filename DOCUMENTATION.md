@@ -7,7 +7,7 @@
 
 1. Copy Charge folder to `site/addons`
 2. Run `php please update:addons`
-3. If you're going to use subscriptions, register the webhook w/ Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
+3. If you're going to use subscriptions, register the webhook with Stripe [here](https://dashboard.stripe.com/account/webhooks). Set it to `https://yoursite.com/!/Charge/webhook`.
 
 ## Settings ##
 
@@ -20,7 +20,7 @@
     * `canceled_email_template` & `payment_failed_email_template` - email templates to use for the failed payment emails
     * `upcoming_payment_email_template` - email template to use for the customer's upcoming payment/invoice
 
-* in your [`.env` file](https://docs.statamic.com/environments#the-env-file), which MUST NOT be checked in:
+* in your [`.env` file](https://docs.statamic.com/environments#the-env-file), which MUST NOT be checked in with Git:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
     * `STRIPE_SECRET_KEY` - Stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
     * `STRIPE_PUBLIC_KEY` - Stripe public key, found here: https://dashboard.stripe.com/account/apikeys
@@ -45,15 +45,15 @@ upcoming_payment_email_template: email/payment_upcoming
 
 ## Usage ##
 
-Two options, [One Time](docs/payments/one-time.md) payments or [subscriptions](docs/payments/subscriptions.md)
+You have two options, [One Time](docs/payments/one-time.md) payments or [subscriptions](docs/payments/subscriptions.md)
 
-Please note that much of the payment processing now occurs on the front end, so please see the Stripe docs for what's needed.
+Please note that much of the payment processing now occurs on the front end, so please see the [Stripe docs](https://stripe.com/docs/stripe-js) for what's needed.
 
 ### Emails ###
 
 #### Upcoming Payment Email ####
 
-This is sent according to your Stripe settings, and assumes you have the webhook set up properly
+This is sent according to your Stripe settings, and assumes you have the [webhook](https://dashboard.stripe.com/account/webhooks) set up properly.
 
 In the email template, you have access to:
 
@@ -78,7 +78,8 @@ In the email template, you have access to:
 * `{{ currency }}` - currency of payment
 * `{{ attempt_count }}` - how many times Charge has tried to process the payment
 * `{{ next_payment_attempt }}` - when Charge will try again, in Unix timestamp format
-*
+
+There are also [two email templates](#emails) for failed payments.
 
 ### Forms ###
 
