@@ -25,7 +25,6 @@
     * `STRIPE_SECRET_KEY` - Stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
     * `STRIPE_PUBLIC_KEY` - Stripe public key, found here: https://dashboard.stripe.com/account/apikeys
     * `STRIPE_ENDPOINT_SECRET` - Webhook signing secret, found here: https://dashboard.stripe.com/webhooks (click on the Charge webhook then "Click to reveal")
-      * NOTE: not needed if you didn't register your webhook, i.e. are **not** using subscriptions
 
 #### Example settings ####
 ```
@@ -137,82 +136,3 @@ These variables are available:
 * `first_name` - customer's first name
 * `last_name`- customer's last name
 
-
-#### Updating Billing Information ####
-
-You can have your users update their own payment information or change which plan they are on. Use the `charge:update_customer_form` tag and pass in the Stripe `custormer_id` as a parameter.
-
-Like the charge, this form requires the `charge:js` tag to be on the page so that the Stripe token can be generated. If you want to redirect after success, pass a `redirect` url.
-
-As w/ the payment form, remember **NOT** to put `name` fields on the CC form inputs so they aren't send to the server at all.
-
-Example:
-
-```
-    {{ user:profile }}
-
-        <header>
-            <h1>{{ name or username }}</h1>
-            <h2>{{ email }}</h2>
-            <img src="{{ email | gravatar:200 }}" alt="{{ name }}" class="img-circle" />
-        </header>
-
-        {{ charge:update_customer_form :customer_id="customer_id" attr="class:form|data-charge-form" }}
-            <div data-charge-errors></div>
-            {{ if errors }}
-                <div class="alert alert-danger">
-                    {{ errors }}
-                        {{ value }}<br>
-                    {{ /errors }}
-                </div>
-            {{ /if }}
-    
-            <fieldset class="payment">
-                <legend>Payment</legend>
-                <div class="form-item">
-                    <label for="cc_name">Name on Card</label>
-                    <input type="text" data-stripe="name" id="cc_name" required value="{{ name }}">
-                </div>
-    
-                <div class="form-item">
-                    <label for="cc_number">Zip/Postal Code</label>
-                    <input type="text" data-stripe="address_zip" id="address_zip" required>
-                </div>
-    
-                <div class="form-item">
-                    <label for="cc_number">Card Number</label>
-                    <input type="text" data-stripe="number" id="cc_number" required>
-                </div>
-    
-                <div class="row row-inner">
-                    <div class="col">
-                        <div class="form-item">
-                            <label for="exp_month">Expiry Month</label>
-                            <input type="text" data-stripe="exp_month" id="exp_month" maxlength="2" required value="{{ exp_month }}">
-                        </div>
-                    </div>
-    
-                    <div class="col">
-                        <div class="form-item">
-                            <label for="exp_year">Expiry Year</label>
-                            <input type="text" data-stripe="exp_year" id="exp_year" maxlength="2" required value="{{ exp_year }}">
-                        </div>
-                    </div>
-    
-                    <div class="col">
-                        <div class="form-item">
-                            <label for="cvc">CVC</label>
-                            <input type="text" data-stripe="cvc" id="cvc" maxlength="4" required placeholder="0000">
-                        </div>
-                    </div>
-                </div>
-    
-            </fieldset>
-    
-            <button class="button primary" id="update-payment" data-charge-button>Update</button>
-    
-        </article>
-    
-        {{ /charge:update_customer_form }}
-    {{ /user:profile }}
-```
