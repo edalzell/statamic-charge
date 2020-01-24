@@ -44,5 +44,5 @@ The general flow to subscribe a user to a plan/product is:
 
 You can use JS for the whole flow, or a combination of JS and the `{{ charge:create_subscription_form }}`:
 
-* [JS](create-subscription-tag.md)
-* [JS + tag](create-subscription-ajax.md)
+* [JS](create-subscription-ajax.md)
+* [JS + tag](create-subscription-tag.md)
