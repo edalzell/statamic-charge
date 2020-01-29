@@ -1,4 +1,14 @@
-## Form
+## Flow
+
+The general flow to subscribe a user to a plan/product is:
+
+1. Gather the payment information and have the user choose a plan
+2. Create the PaymentMethod
+3. Subscribe to plan (Charge creates the customer)
+
+Also, please review Stripe's [docs](https://stripe.com/docs/billing/subscriptions/set-up-subscription) on how subscriptions work.
+
+## Example
 
 ```
 <form id="my-form">

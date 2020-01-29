@@ -34,19 +34,6 @@ You must set up the [webhooks](https://stripe.com/docs/billing/webhooks), use `h
 
 To test you can use `valet share` or a service like [Ultrahook](http://www.ultrahook.com).
 
-## Flow
-
-The general flow to subscribe a user to a plan/product is:
-
-1. Gather the payment information and have the user choose a plan
-2. Create the PaymentMethod
-3. Subscribe to plan (Charge creates the customer)
-
-You can use JS for the whole flow, or a combination of JS and the `{{ charge:create_subscription_form }}`:
-
-* [JS](create-subscription-ajax.md)
-* [JS + tag](create-subscription-tag.md)
-
 ## Control Panel
 
 In the Control Panel, under Tools, you'll see a `Charge` item and from there you can see/update:
@@ -56,9 +43,24 @@ In the Control Panel, under Tools, you'll see a `Charge` item and from there you
 
 Further information, please see your Stripe [dashboard](https://dashboard.stripe.com).
 
+## Flow
+
+The general flow to subscribe a user to a plan/product is:
+
+1. Gather the payment information and have the user choose a plan
+2. Create the PaymentMethod
+3. Subscribe to plan (Charge creates the customer)
+
+
 ## Tags
 
 All of these tags assume a logged in user.
+
+### Create Subscription
+There are two ways to do it, with a mix of tags & JS or completely in JS:
+
+* [JS + tag](create-subscription-tag.md)
+* [JS](create-subscription-ajax.md)
 
 ### Update Plan/Quantity
 
