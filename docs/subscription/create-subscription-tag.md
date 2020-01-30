@@ -77,6 +77,7 @@ Example JS:
                     if (result.error) {
                         // show error
                     } else {
+                        addToForm('payment_method', result.paymentMethod.id, form);
                         form.submit();
                     }
                 });
