@@ -10,9 +10,12 @@ use Statamic\API\URL;
 use Stripe\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\MessageBag;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Validator;
 use Statamic\API\Request as StatamicRequest;
 use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Validation\Validator as ValidationValidator;
 
 trait HasSubscriptions
 {
@@ -20,12 +23,15 @@ trait HasSubscriptions
 
     public function postSubscription(Request $request)
     {
-        $this->validate($request, [
+        /** @var ValidationValidator */
+        $validator = Validator::make($request->all(), [
             'plan' => 'required',
             'payment_method' => 'required',
         ]);
 
-//        $planConfig = $this->getPlansConfig($request->input('plan'));
+        if ($validator->fails()) {
+            return $this->error($validator->errors());
+        }
 
         $details = $this->getDetails($request);
 
@@ -35,7 +41,6 @@ trait HasSubscriptions
                 if there's a fixed billing date set the billing-cycle-anchor
                 if prorate, set prorate to true
         */
-
         $planId = $details['plan'];
         $plan = Plan::retrieve(['id' => $planId, 'expand' => ['product']]);
         $trialDays = Arr::get($details, 'trial_period_days', 0);
@@ -68,13 +73,8 @@ trait HasSubscriptions
             $subscription['trial_period_days'] = $trialDays;
         }
 
-        // add metadata
-//        $subscription['metadata']['plan_config'] = json_encode($planConfig);
-
         $subscription = Subscription::create($subscription);
 
-        // check for further actions and redirect
-        $status = $subscription->latest_invoice->payment_intent->status;
         if ($subscription->latest_invoice->payment_intent->status == 'requires_action') {
             return $this->subscriptionRequiresAction($subscription, $details);
         }
@@ -111,7 +111,6 @@ trait HasSubscriptions
             return back();
         }
         // if from front end then
-
         return $this->subscriptionSuccess($subscription, []);
     }
 
@@ -249,11 +248,31 @@ trait HasSubscriptions
     }
 
     /**
+     * @return Response|RedirectResponse
+     */
+    private function error(MessageBag $errors)
+    {
+        if (request()->ajax()) {
+            return response([
+                'status' => 'error',
+                'errors' => $errors->toArray(),
+            ]);
+        }
+
+        $response = back();
+
+        $this->flash->put('error', true);
+        $this->flash->put('details', $errors->toArray());
+
+        return back()->withErrors($errors->toArray());
+    }
+
+    /**
      * The steps for a failed form submission.
      *
      * @return Response|RedirectResponse
      */
-    private function subscriptionRequiresAction(Subscription $subscription, array $params)
+    private function requiresAction(Subscription $subscription, array $params)
     {
         $secret = $subscription->latest_invoice->payment_intent->client_secret;
         if (request()->ajax()) {
