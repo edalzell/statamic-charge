@@ -33,7 +33,9 @@ trait HasCustomers
         $customer->invoice_settings->default_payment_method = request('payment_method');
         $customer->save();
 
-        return back();
+        $redirect = request('redirect', false);
+
+        return $redirect ? redirect($redirect) : back();
     }
 
     public function getOrCreateCustomer(string $paymentMethod = null): Customer
