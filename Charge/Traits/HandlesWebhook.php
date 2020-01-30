@@ -36,10 +36,6 @@ trait HandlesWebhook
             });
         }
 
-        // if (!$this->user) {
-        //     return $this->successMethod();
-        // }
-
         $method = 'handle' . Str::studly(str_replace('.', '_', $payload['type']));
 
         if (method_exists($this, $method)) {
@@ -63,7 +59,7 @@ trait HandlesWebhook
         }
 
         (new SendEmailAction)->execute(
-            $data['receipt_email'],
+            Arr::get($data, 'charges.data.0.receipt_email'),
             'one_time_payment_email_template',
             [
                 'amount' => Arr::get($data, 'charges.data.0.amount'),
