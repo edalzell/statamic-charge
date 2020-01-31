@@ -17,9 +17,11 @@
     * `currency` - default currency for payments
     * `plan` & `role` - when a customer subscribles to a plan, which role(s) should they have. You could use this to have different membership tiers for example.
     * `from_email` - when the payment failed emails go out, what email account do they come from
-    * `one_time_payment_email_template` - successful one time payment
-    * `canceled_email_template` & `payment_failed_email_template` - email templates to use for the failed payment emails
-    * `upcoming_payment_email_template` - email template to use for the customer's upcoming payment/invoice
+    * `one_time_payment_email_template` & `one_time_payment_email_subject` - successful one time payment
+    * `canceled_email_template` & `canceled_email_subject` - when the subscription ends
+    * `payment_failed_email_template` & `payment_failed_email_subject` - when payment fails
+    * `upcoming_payment_email_template` & `upcoming_payment_email_subject` - when payment is upcoming
+    * `subscription_updated_email_template` & `subscription_updated_email_template` - when subscription is changed
 
 * in your [`.env` file](https://docs.statamic.com/environments#the-env-file), which MUST NOT be checked in with Git:
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
@@ -44,6 +46,47 @@ payment_failed_email_template: emails/payment_failed
 upcoming_payment_email_template: emails/payment_upcoming
 payment_succeeded_email_template: emails/payment_successful
 ```
+
+## Emails ##
+
+In the One Time Payment template, you have access to:
+* `amount` - amount of charge
+* `currency` - currency the charge was in
+* `description` - description of charge
+* `receipt_url` - link to receipt on Stripe
+ 
+In the upcoming payment template, you have access to:
+* `amount`
+* `currency`
+* `due_date`
+* `first_name`
+* `last_name`
+* `plan`
+ 
+In the payment succeeded template, you have access to:
+* `amount`
+* `currency`
+* `due_date`
+* `first_name`
+* `last_name`
+* `plan`
+ 
+In the payment failed template, you have access to:
+* `amount`
+* `attempt_count` - how many times they've attempted payment
+* `currency`
+* `due_date`
+* `first_name`
+* `last_name`
+* `next_payment_attempt` - when the next payment will be attempted
+* `plan`
+
+In the updated & deleted subscription template, you have access to:
+* `first_name`
+* `last_name`
+* `plan`
+* `subscription_end` - when the subscription ends or will be renewed
+* `subscription_status` - when the next payment will be attempted
 
 ## Usage ##
 
