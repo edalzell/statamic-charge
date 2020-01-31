@@ -48,6 +48,13 @@ fields:
   one_time_payment_email_subject:
     type: text
     width: 50
+  subscription_updated_email_template:
+    type: template
+    display: Subscription Updated Email
+    width: 50
+  subscription_updated_email_subject:
+    type: text
+    width: 50
   canceled_email_template:
     type: template
     display: Canceled Email

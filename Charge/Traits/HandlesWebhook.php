@@ -178,7 +178,15 @@ trait HandlesWebhook
 
         $action->execute($data['plan']['id'], $oldPlan);
 
-        // send email
+        (new SendEmailAction)->execute(
+            $this->user->email(),
+            'subscription_updated_email_template',
+            'subscription_updated_email_subject',
+            array_only(
+                $this->user->data(),
+                ['plan', 'first_name', 'last_name', 'subscription_status', 'subscription_end']
+            )
+        );
 
         return $this->successMethod();
     }
@@ -192,7 +200,7 @@ trait HandlesWebhook
             ->set('plan', $data['plan']['id'])
             ->set('subscription_id', $data['id'])
             ->set('subscription_start', $data['current_period_start'])
-            ->set('subscription_end', $data['current_period_end'])
+            ->set('subscription_end', $data['ended_at'])
             ->set('subscription_status', 'canceled')
             ->save();
 
@@ -201,12 +209,12 @@ trait HandlesWebhook
         $action->execute(null, $oldPlan);
 
         (new SendEmailAction)->execute(
-            $this->user,
+            $this->user->email(),
             'canceled_email_template',
             'canceled_email_subject',
             array_only(
                 $this->user->data(),
-                ['plan', 'first_name', 'last_name', 'subscription_end']
+                ['plan', 'first_name', 'last_name', 'subscription_status', 'subscription_end']
             )
         );
 
