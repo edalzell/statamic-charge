@@ -6,6 +6,7 @@ use Stripe\Customer;
 use Statamic\API\Arr;
 use Statamic\API\User;
 use Stripe\PaymentMethod;
+use Stripe\Exception\ApiErrorException;
 use Statamic\Addons\Charge\Actions\CreateCustomerAction;
 
 trait HasCustomers
@@ -22,20 +23,31 @@ trait HasCustomers
 
     public function patchCustomer($id)
     {
-        $customer = Customer::retrieve($id);
+        try {
+            $customer = Customer::retrieve($id);
 
-        PaymentMethod::retrieve($customer->invoice_settings->default_payment_method)->detach();
+            PaymentMethod::retrieve($customer->invoice_settings->default_payment_method)->detach();
 
-        PaymentMethod::retrieve(request('payment_method'))->attach([
+            PaymentMethod::retrieve(request('payment_method'))->attach([
             'customer' => $id,
         ]);
 
-        $customer->invoice_settings->default_payment_method = request('payment_method');
-        $customer->save();
+            $customer->invoice_settings->default_payment_method = request('payment_method');
+            $customer->save();
 
-        $redirect = request('redirect', false);
+            $redirect = request('redirect', false);
 
-        return $redirect ? redirect($redirect) : back();
+            return $redirect ? redirect($redirect) : back();
+        } catch (ApiErrorException $e) {
+            $error = $e->getError();
+
+            $errors = [];
+            $errors['type'] = $error->type;
+            $errors['code'] = $error->code;
+            $errors['message'] = $error->message;
+
+            return $this->error($errors);
+        }
     }
 
     public function getOrCreateCustomer(string $paymentMethod = null): Customer

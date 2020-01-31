@@ -2,6 +2,7 @@
 
 namespace Statamic\Addons\Charge\Traits;
 
+use Exception;
 use Stripe\Plan;
 use Carbon\Carbon;
 use Stripe\Charge;
@@ -10,8 +11,8 @@ use Statamic\API\URL;
 use Stripe\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\MessageBag;
 use Illuminate\Http\RedirectResponse;
+use Stripe\Exception\ApiErrorException;
 use Illuminate\Support\Facades\Validator;
 use Statamic\API\Request as StatamicRequest;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -30,32 +31,32 @@ trait HasSubscriptions
         ]);
 
         if ($validator->fails()) {
-            return $this->error($validator->errors());
+            return $this->error($validator->errors()->toArray());
         }
 
         $details = $this->getDetails($request);
+        try {
+            $customer = $this->getOrCreateCustomer($details['payment_method']);
 
-        $customer = $this->getOrCreateCustomer($details['payment_method']);
+            /*
+                    if there's a fixed billing date set the billing-cycle-anchor
+                    if prorate, set prorate to true
+            */
+            $planId = $details['plan'];
+            $plan = Plan::retrieve(['id' => $planId, 'expand' => ['product']]);
+            $trialDays = Arr::get($details, 'trial_period_days', 0);
 
-        /*
-                if there's a fixed billing date set the billing-cycle-anchor
-                if prorate, set prorate to true
-        */
-        $planId = $details['plan'];
-        $plan = Plan::retrieve(['id' => $planId, 'expand' => ['product']]);
-        $trialDays = Arr::get($details, 'trial_period_days', 0);
-
-        if ($billingDay = Arr::get($details, 'billing_day')) {
-            $trialDays = Carbon::now()->diffInDays(Carbon::now()->addMonths(2)->day($billingDay));
-            // we need to bill them the same amount as the plan, immediately
-            Charge::create([
+            if ($billingDay = Arr::get($details, 'billing_day')) {
+                $trialDays = Carbon::now()->diffInDays(Carbon::now()->addMonths(2)->day($billingDay));
+                // we need to bill them the same amount as the plan, immediately
+                Charge::create([
                     'customer' => $customer->id,
                     'amount' => $plan->amount * Arr::get($details, 'quantity', 1),
                     'currency' => $plan->currency,
                     'description' => $plan->product->statement_descriptor,
                 ]);
-        }
-        $subscription = [
+            }
+            $subscription = [
                 'customer' => $customer->id,
                 'items' => [
                     [
@@ -67,35 +68,62 @@ trait HasSubscriptions
                 'coupon' => Arr::get($details, 'coupon'),
                 'expand' => ['latest_invoice.payment_intent'],
             ];
-        if ($plan->trial_period_days) {
-            $subscription['trial_from_plan'] = true;
-        } else {
-            $subscription['trial_period_days'] = $trialDays;
+            if ($plan->trial_period_days) {
+                $subscription['trial_from_plan'] = true;
+            } else {
+                $subscription['trial_period_days'] = $trialDays;
+            }
+
+            $subscription = Subscription::create($subscription);
+
+            if ($subscription->latest_invoice->payment_intent->status == 'requires_action') {
+                return $this->subscriptionRequiresAction($subscription, $details);
+            }
+
+            if (false /* errors */) {
+                return $this->errors($subscription);
+            }
+
+            return $this->subscriptionSuccess($subscription, $details);
+        } catch (ApiErrorException $e) {
+            $error = $e->getError();
+
+            $errors = [];
+            $errors['type'] = $error->type;
+            $errors['code'] = $error->code;
+            $errors['message'] = $error->message;
+
+            return $this->error($errors);
+        } catch (Exception $e) {
+            $errors = [];
+            $errors['type'] = 'error';
+            $errors['message'] = $e->getMessage();
+
+            return $this->error($errors);
         }
-
-        $subscription = Subscription::create($subscription);
-
-        if ($subscription->latest_invoice->payment_intent->status == 'requires_action') {
-            return $this->subscriptionRequiresAction($subscription, $details);
-        }
-
-        if (false /* errors */) {
-            return $this->errors($subscription);
-        }
-
-        return $this->subscriptionSuccess($subscription, $details);
     }
 
     public function patchSubscription($id)
     {
-        $subscription = Subscription::retrieve($id);
+        try {
+            $subscription = Subscription::retrieve($id);
 
-        $subscription->quantity = request('quantity', 1);
-        $subscription->plan = request('plan');
+            $subscription->quantity = request('quantity', 1);
+            $subscription->plan = request('plan');
 
-        $subscription->save();
+            $subscription->save();
 
-        return $this->subscriptionSuccess($subscription, []);
+            return $this->subscriptionSuccess($subscription, []);
+        } catch (ApiErrorException $e) {
+            $error = $e->getError();
+
+            $errors = [];
+            $errors['type'] = $error->type;
+            $errors['code'] = $error->code;
+            $errors['message'] = $error->message;
+
+            return $this->error($errors);
+        }
     }
 
     public function deleteSubscription($id)
@@ -245,26 +273,6 @@ trait HasSubscriptions
         $this->flash->put('details', $subscription->toArray());
 
         return $response;
-    }
-
-    /**
-     * @return Response|RedirectResponse
-     */
-    private function error(MessageBag $errors)
-    {
-        if (request()->ajax()) {
-            return response([
-                'status' => 'error',
-                'errors' => $errors->toArray(),
-            ]);
-        }
-
-        $response = back();
-
-        $this->flash->put('error', true);
-        $this->flash->put('details', $errors->toArray());
-
-        return back()->withErrors($errors->toArray());
     }
 
     /**

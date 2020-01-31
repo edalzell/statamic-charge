@@ -245,6 +245,24 @@ class ChargeController extends Controller
     }
 
     /**
+     * @return Response|RedirectResponse
+     */
+    private function error(array $errors)
+    {
+        if (request()->ajax()) {
+            return response([
+                'status' => 'error',
+                'errors' => $errors,
+            ]);
+        }
+
+        $this->flash->put('error', true);
+        $this->flash->put('details', $errors);
+
+        return back()->withErrors($errors);
+    }
+
+    /**
      * Get the Validator instance
      *
      * @return mixed
