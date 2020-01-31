@@ -20,7 +20,7 @@ Also, please review Stripe's [docs](https://stripe.com/docs/billing/subscription
         <!-- Used to display Element errors. -->
         <div id="card-errors" role="alert"></div>
     </div>
-    <select name="plan">
+    <select name="plan" id="plan">
         <option value="">--Please choose a plan--</option>
         {{ charge:plans }}
             <option value="{{ id }}" {{ if plan == id }} selected{{ /if }}>{{ product.name }} {{ if nickname }}({{ nickname }}){{ /if }}</option>
@@ -71,7 +71,7 @@ Example AJAX JS:
                             'X-CSRF-Token': '{{ csrf_token }}'
                         },
                         body: JSON.stringify({
-                            plan: 'plan_EUfLkn7S3RIy8O',
+                            plan: document.getElementById('#plan').options[e.selectedIndex].value,
                             payment_method: result.paymentMethod.id
                         })
                     }).then(response => {
