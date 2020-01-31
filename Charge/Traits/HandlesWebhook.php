@@ -61,6 +61,7 @@ trait HandlesWebhook
         (new SendEmailAction)->execute(
             Arr::get($data, 'charges.data.0.receipt_email'),
             'one_time_payment_email_template',
+            'one_time_payment_email_subject',
             [
                 'amount' => Arr::get($data, 'charges.data.0.amount'),
                 'currency' => Arr::get($data, 'charges.data.0.currency'),
@@ -95,6 +96,7 @@ trait HandlesWebhook
         (new SendEmailAction)->execute(
             $this->user->email(),
             'upcoming_payment_email_template',
+            'upcoming_payment_email_subject',
             [
                 'plan' => $this->user->get('plan'),
                 'first_name' => $this->user->get('first_name'),
@@ -113,6 +115,7 @@ trait HandlesWebhook
         (new SendEmailAction)->execute(
             $this->user->email(),
             'payment_succeeded_email_template',
+            'payment_succeeded_email_subject',
             [
                 'plan' => $this->user->get('plan'),
                 'first_name' => $this->user->get('first_name'),
@@ -136,6 +139,7 @@ trait HandlesWebhook
             (new SendEmailAction)->execute(
                 $this->user->email(),
                 'payment_failed_email_template',
+                'payment_failed_email_subject',
                 [
                     'plan' => $this->user->get('plan'),
                     'first_name' => $this->user->get('first_name'),
@@ -199,6 +203,7 @@ trait HandlesWebhook
         (new SendEmailAction)->execute(
             $this->user,
             'canceled_email_template',
+            'canceled_email_subject',
             array_only(
                 $this->user->data(),
                 ['plan', 'first_name', 'last_name', 'subscription_end']

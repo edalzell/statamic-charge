@@ -40,35 +40,39 @@ fields:
     display: Email Settings
   from_email:
     type: text
-    width: 33
     default: false
   one_time_payment_email_template:
     type: template
     display: One Time Payment Email
-    width: 33
-    show_when:
-      use_stripe_emails: false
+    width: 50
+  one_time_payment_email_subject:
+    type: text
+    width: 50
   canceled_email_template:
     type: template
     display: Canceled Email
-    width: 33
-    show_when:
-      use_stripe_emails: false
+    width: 50
+  canceled_email_subject:
+    type: text
+    width: 50
   upcoming_payment_email_template:
     type: template
     display: Upcoming Payment Email
-    width: 33
-    show_when:
-      use_stripe_emails: false
+    width: 50
+  upcoming_payment_email_subject:
+    type: text
+    width: 50
   payment_succeeded_email_template:
     type: template
     display: Payment Succeeded Email
-    width: 33
-    show_when:
-      use_stripe_emails: false
+    width: 50
+  payment_succeeded_email_subject:
+    type: text
+    width: 50
   payment_failed_email_template:
     type: template
     display: Payment Failed Email
-    width: 33
-    show_when:
-      use_stripe_emails: false
+    width: 50
+  payment_failed_email_subject:
+    type: text
+    width: 50

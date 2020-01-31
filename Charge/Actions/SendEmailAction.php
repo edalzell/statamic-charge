@@ -16,28 +16,24 @@ class SendEmailAction
         $this->config = app(Addons::class)->get('charge');
     }
 
-    public function execute(string $email, string $template, array $data)
+    public function execute(string $to, string $template, string $subject, array $data)
     {
-        Email::to($email)
-            ->from($this->from())
+        Email::to($to)
+            ->from($this->setting('from_email'))
+            ->subject($this->setting($subject))
             ->in($this->themeFolder())
-            ->template($this->template($template))
+            ->template($this->setting($template))
             ->with($data)
             ->send();
     }
 
-    private function from()
+    private function setting(string $setting)
     {
-        return Arr::get($this->config, 'from_email');
+        return Arr::get($this->config, $setting);
     }
 
     private function themeFolder()
     {
         return 'site/themes/' . Config::getThemeName() . '/templates';
-    }
-
-    private function template($template)
-    {
-        return Arr::get($this->config, $template);
     }
 }
