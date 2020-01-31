@@ -93,6 +93,12 @@ Example AJAX JS:
                                     // success
                                 }
                             });
+                        } else {
+                            const { errors } = json;
+
+                            let element = document.getElementById('card-errors');
+
+                            element.innerHTML = errors.code + ': ' + errors.message;
                         }
                     });
                 }

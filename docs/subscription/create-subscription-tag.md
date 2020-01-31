@@ -29,7 +29,9 @@ Also, please review Stripe's [docs](https://stripe.com/docs/billing/subscription
             <div id="card-element"></div>
 
             <!-- Used to display Element errors. -->
-            <div id="card-errors" role="alert"></div>
+            {{ if errors }}
+                <div id="card-errors" role="alert">{{ code }} - {{ message }}</div>
+            {{ /errors }}
         </div>
         <select name="plan">
             <option value="">--Please choose a plan--</option>
