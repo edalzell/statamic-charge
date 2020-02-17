@@ -54,15 +54,39 @@ The general flow to subscribe a user to a plan/product is:
 
 ## Tags
 
-All of these tags assume a logged in user.
+### Plans
+
+Lists your Stripe Plans
+
+Supported Parameters:
+* `limit` - optional, how many plans to return, defaults to 10 (Stripe default)
+
+Fields:
+* All data listed [here](https://stripe.com/docs/api/plans/object)
+
+### Example
+
+```
+<select name="plan">
+    <option value="">--Please choose a plan--</option>
+    {{ charge:plans limit="20" }}
+        <option value="{{ id }}" {{ if plan == id }} selected{{ /if }}>{{ product.name }}{{ if nickname }}({{ nickname }}){{ /if }}</option>
+    {{ /charge:plans }}
+</select>
+```
 
 ### Create Subscription
+
+Assumes a logged in user.
+
 There are two ways to do it, with a mix of tags & JS or completely in JS:
 
 * [JS + tag](create-subscription-tag.md)
 * [JS](create-subscription-ajax.md)
 
 ### Update Plan/Quantity
+
+Assumes a logged in user.
 
 Use this tag to allow users to change their own subscription plan and/or quantity
 
@@ -89,6 +113,8 @@ Fields:
 ```
 
 ### Update Billing Information
+
+Assumes a logged in user.
 
 Use this tag to allow users to change their billing information (credit card, etc)
 
@@ -152,6 +178,8 @@ Fields:
 ```
 
 ### Cancel Subscription
+
+Assumes a logged in user.
 
 Use this tag to allow users to cancel their subscription
 

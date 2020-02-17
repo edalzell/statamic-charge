@@ -189,9 +189,11 @@ trait HasSubscriptions
      */
     public function plans()
     {
+        $limit = $this->getParamInt('limit', 10);
         $plans = Plan::all(
             [
                 'expand' => ['data.product'],
+                'limit' => $limit
             ]
         )->toArray();
 
