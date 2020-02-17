@@ -122,8 +122,6 @@ trait HandlesWebhook
                 'last_name' => $this->user->get('last_name'),
                 'amount' => $data['amount_due'],
                 'currency' => $data['currency'],
-                'attempt_count' => $data['attempt_count'],
-                'next_payment_attempt' => $data['next_payment_attempt'],
             ]
         );
 
@@ -131,7 +129,7 @@ trait HandlesWebhook
     }
 
     private function handleInvoicePaymentFailed($data)
-    {  // @todo should we send an email here?
+    {
         if ($data['next_payment_attempt']) {
             $this->user->set('subscription_status', 'past_due');
             $this->user->save();
