@@ -99,6 +99,8 @@ Fields:
 
 ### Example
 
+**NOTE**: `subscription_id` will be a value available to you in the user data
+
 ```
 {{ charge:update_subscription_form :id="subscription_id" }}
     <select name="plan">
@@ -125,6 +127,8 @@ Supported Parameters:
 Fields:
 * `plan` - new plan id
 * `quantity` - how many of them (usually 1)
+
+**NOTE**: `customer_id` will be a value available to you in the user data
 
 ```
 {{ charge:update_billing_form :id="customer_id" attr="id:foo"}}
@@ -185,6 +189,8 @@ Use this tag to allow users to cancel their subscription
 
 Supported Parameters:
 * `id` - required
+
+**NOTE**: `subscription_id` will be a value available to you in the user data
 
 ```
 {{ charge:cancel_subscription_form :id="subscription_id" }}

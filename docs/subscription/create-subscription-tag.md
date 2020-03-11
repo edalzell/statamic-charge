@@ -31,7 +31,7 @@ Also, please review Stripe's [docs](https://stripe.com/docs/billing/subscription
             <!-- Used to display Element errors. -->
             {{ if errors }}
                 <div id="card-errors" role="alert">{{ code }} - {{ message }}</div>
-            {{ /errors }}
+            {{ /if }}
         </div>
         <select name="plan">
             <option value="">--Please choose a plan--</option>
