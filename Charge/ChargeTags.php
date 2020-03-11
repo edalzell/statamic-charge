@@ -4,21 +4,18 @@ namespace Statamic\Addons\Charge;
 
 use Stripe\Stripe;
 use Stripe\Customer;
-use Statamic\API\URL;
 use Statamic\API\User;
 use Statamic\API\Crypt;
 use Stripe\SetupIntent;
 use Statamic\Extend\Tags;
 use Stripe\PaymentIntent;
-use Stripe\Checkout\Session;
 use Statamic\Addons\Charge\Traits\Billing;
-use Statamic\Addons\Charge\Traits\HasCustomers;
-use Statamic\Addons\Charge\Traits\HasParameters;
 use Statamic\Addons\Charge\Traits\HasSubscriptions;
 
 class ChargeTags extends Tags
 {
-    use Billing, HasParameters, HasSubscriptions, HasCustomers;
+    use Billing;
+    use HasSubscriptions;
 
     public function init()
     {
