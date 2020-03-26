@@ -39,8 +39,8 @@ trait HasSubscriptions
             $customer = $this->getOrCreateCustomer($details['payment_method']);
 
             /*
-                    if there's a fixed billing date set the billing-cycle-anchor
-                    if prorate, set prorate to true
+                if there's a fixed billing date set the billing-cycle-anchor
+                if prorate, set prorate to true
             */
             $planId = $details['plan'];
             $plan = Plan::retrieve(['id' => $planId, 'expand' => ['product']]);
@@ -76,7 +76,7 @@ trait HasSubscriptions
 
             $subscription = Subscription::create($subscription);
 
-            if ($subscription->latest_invoice->payment_intent->status == 'requires_action') {
+            if (isset($subscription->latest_invoice->payment_intent) && $subscription->latest_invoice->payment_intent->status == 'requires_action') {
                 return $this->subscriptionRequiresAction($subscription, $details);
             }
 
@@ -143,7 +143,7 @@ trait HasSubscriptions
     }
 
     /**
-     * The {{ charge:create_subscription_form }} tag
+     * The {{ charge:create_subscription_form }} tag.
      *
      * @return string|array
      */
@@ -153,27 +153,27 @@ trait HasSubscriptions
     }
 
     /**
-     * The {{ charge:update_subscription_form }} tag
+     * The {{ charge:update_subscription_form }} tag.
      *
      * @return string|array
      */
     public function updateSubscriptionForm()
     {
-        return $this->createForm('subscription/' . $this->getParam('id'), [], 'PATCH');
+        return $this->createForm('subscription/'.$this->getParam('id'), [], 'PATCH');
     }
 
     /**
-     * The {{ charge:cancel_subscription_form }} tag
+     * The {{ charge:cancel_subscription_form }} tag.
      *
      * @return string
      */
     public function cancelSubscriptionForm()
     {
-        return $this->createForm('subscription/' . $this->getParam('id'), [], 'DELETE');
+        return $this->createForm('subscription/'.$this->getParam('id'), [], 'DELETE');
     }
 
     /**
-     * Get the plan details
+     * Get the plan details.
      *
      * @return string
      */
@@ -183,7 +183,7 @@ trait HasSubscriptions
     }
 
     /**
-     * Get the Stripe plans
+     * Get the Stripe plans.
      *
      * @return string
      */
@@ -193,7 +193,7 @@ trait HasSubscriptions
         $plans = Plan::all(
             [
                 'expand' => ['data.product'],
-                'limit' => $limit
+                'limit' => $limit,
             ]
         )->toArray();
 
@@ -201,7 +201,7 @@ trait HasSubscriptions
     }
 
     /**
-     * The {{ charge:cancel_subscription_url }} tag
+     * The {{ charge:cancel_subscription_url }} tag.
      *
      * @return string
      */
@@ -211,7 +211,7 @@ trait HasSubscriptions
     }
 
     /**
-     * The {{ charge:renew_subscription_url }} tag
+     * The {{ charge:renew_subscription_url }} tag.
      *
      * @return string
      */
@@ -226,7 +226,7 @@ trait HasSubscriptions
 
         // if they want to redirect, add it as a queary param
         if ($redirect = $this->getParam('redirect')) {
-            $url .= '?redirect=' . $redirect;
+            $url .= '?redirect='.$redirect;
         }
 
         return $url;
@@ -249,7 +249,7 @@ trait HasSubscriptions
                     'expiry_date' => $subscription['current_period_end'],
                     'plan' => $subscription['plan']['product']['name'],
                     'amount' => $subscription['plan']['amount'],
-                    'auto_renew' => !$subscription['cancel_at_period_end'],
+                    'auto_renew' => ! $subscription['cancel_at_period_end'],
                     'has_subscription' => true,
                 ];
             })->toArray();
