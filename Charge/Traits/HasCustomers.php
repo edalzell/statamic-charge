@@ -33,9 +33,7 @@ trait HasCustomers
             $customer->invoice_settings->default_payment_method = PaymentMethod::retrieve(request('payment_method'))->attach(['customer' => $id]);
             $customer->save();
 
-            $redirect = request('redirect', false);
-
-            return $redirect ? redirect($redirect) : back();
+            return $this->updateSuccess($customer);
         } catch (ApiErrorException $e) {
             $error = $e->getError();
 
@@ -86,5 +84,25 @@ trait HasCustomers
         }
 
         return Arr::get($yaml, 'customer_id');
+    }
+
+    /**
+     * @return Response|RedirectResponse
+     */
+    private function updateSuccess(Customer $customer)
+    {
+        if (request()->ajax()) {
+            return response([
+                'status' => 'success',
+                'details' => $customer->toArray(),
+            ]);
+        }
+
+        $this->flash->put('success', true);
+        $this->flash->put('details', $customer->toArray());
+
+        $redirect = request('redirect', false);
+
+        return $redirect ? redirect($redirect) : back();
     }
 }
