@@ -2,9 +2,9 @@
 
 namespace Statamic\Addons\Charge\SuggestModes;
 
+use Statamic\Addons\Suggest\Modes\AbstractMode;
 use Stripe\Plan;
 use Stripe\Stripe;
-use Statamic\Addons\Suggest\Modes\AbstractMode;
 
 class StripePlansSuggestMode extends AbstractMode
 {
@@ -14,7 +14,7 @@ class StripePlansSuggestMode extends AbstractMode
 
         return collect(Plan::all(['expand' => ['data.product']])->data)
             ->map(function ($plan, $key) {
-                return ['value' => $plan->id, 'text' => $plan->product->name];
+                return ['value' => $plan->id, 'text' => $plan->nickname];
             })
             ->values()
             ->all();
