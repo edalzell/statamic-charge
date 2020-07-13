@@ -190,12 +190,23 @@ trait HasSubscriptions
     public function plans()
     {
         $limit = $this->getParamInt('limit', 10);
-        $plans = Plan::all(
-            [
-                'expand' => ['data.product'],
-                'limit' => $limit,
-            ]
-        )->toArray();
+        $active = $this->getParam('active');
+        $product = $this->getParam('product');
+
+        $params = [
+            'expand' => ['data.product'],
+            'limit' => $limit,
+        ];
+
+        if (! is_null($active)) {
+            $params['active'] = (bool) $active;
+        }
+
+        if ($product) {
+            $params['product'] = $product;
+        }
+
+        $plans = Plan::all($params)->toArray();
 
         return $this->parseLoop($plans['data']);
     }
