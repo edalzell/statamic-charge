@@ -58,8 +58,11 @@ trait HandlesWebhook
             $user->save();
         }
 
+        $receiptEmail = Arr::get($data, 'charges.data.0.receipt_email');
+        $billingEmail = Arr::get($data, 'charges.data.0.billing_details.email');
+
         (new SendEmailAction)->execute(
-            Arr::get($data, 'charges.data.0.receipt_email'),
+            $receiptEmail ?: $billingEmail,
             'one_time_payment_email_template',
             'one_time_payment_email_subject',
             [
