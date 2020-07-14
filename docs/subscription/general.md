@@ -60,6 +60,8 @@ Lists your Stripe Plans
 
 Supported Parameters:
 * `limit` - optional, how many plans to return, defaults to 10 (Stripe default)
+* `active` - optional, return plans that are active or inactive
+* `product` - optional, only return plans for the given product
 
 Fields:
 * All data listed [here](https://stripe.com/docs/api/plans/object)
@@ -172,7 +174,7 @@ Fields:
                 },
             }).then(function(result) {
                 addToForm('payment_method', result.paymentMethod.id, form);
-                
+
                 // send to Charge
                 form.submit();
             });
