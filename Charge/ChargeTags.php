@@ -10,11 +10,13 @@ use Stripe\SetupIntent;
 use Statamic\Extend\Tags;
 use Stripe\PaymentIntent;
 use Statamic\Addons\Charge\Traits\Billing;
+use Statamic\Addons\Charge\Traits\HasProducts;
 use Statamic\Addons\Charge\Traits\HasSubscriptions;
 
 class ChargeTags extends Tags
 {
     use Billing;
+    use HasProducts;
     use HasSubscriptions;
 
     public function init()
