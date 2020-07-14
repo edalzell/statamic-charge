@@ -200,3 +200,17 @@ Supported Parameters:
 {{ /charge:cancel_subscription_form }}
 
 ```
+
+### Customer Portal
+
+Assumes a logged in user.
+
+Use this tag to create a temporary link to the [Stripe Customer Portal](https://stripe.com/docs/billing/subscriptions/customer-portal).
+
+```
+{{ charge:customer_portal :id="customer_id" }}
+    <a href="{{ url }}" target="_blank">
+        Customer Portal
+    </a>
+{{ /charge:customer_portal }}
+```
