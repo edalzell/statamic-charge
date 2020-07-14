@@ -9,10 +9,12 @@ use Stripe\Customer;
 use Statamic\API\Arr;
 use Statamic\API\URL;
 use Statamic\API\User;
+use Stripe\BillingPortal\Session as BillingPortalSession;
 use Stripe\Subscription;
 use Stripe\PaymentIntent;
 use Stripe\Checkout\Session;
 use Stripe\Charge as StripeCharge;
+use Stripe\Exception\ApiErrorException;
 
 trait Billing
 {
@@ -297,5 +299,30 @@ trait Billing
         $details['subscriptions'] = $details['subscriptions']['data'];
 
         return $details;
+    }
+
+    /**
+     * The {{ charge:customer_portal }} tag.
+     *
+     * @return array
+     */
+    public function customerPortal()
+    {
+        if (! $customerId = $this->getParam('id')) {
+            return false;
+        }
+
+        try {
+            $session = BillingPortalSession::create([
+                'customer' => $customerId,
+                'return_url' => URL::makeAbsolute(URL::getCurrentWithQueryString()),
+            ]);
+
+            return $this->parse($session->toArray());
+        } catch (ApiErrorException $e) {
+            \Log::error($e->getError());
+        }
+
+        return false;
     }
 }
