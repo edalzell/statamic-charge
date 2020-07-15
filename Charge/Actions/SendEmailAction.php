@@ -34,6 +34,8 @@ class SendEmailAction
 
     private function themeFolder()
     {
-        return 'site/themes/' . Config::getThemeName() . '/templates';
+        $themesPath = Config::get('system.filesystems.themes.root');
+
+        return $themesPath . '/' . Config::getThemeName() . '/templates';
     }
 }
