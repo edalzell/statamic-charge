@@ -27,7 +27,7 @@
     * please note the proper format for the [key/value pair](https://docs.statamic.com/environments#the-env-file)
     * `STRIPE_SECRET_KEY` - Stripe secret key, found here: https://dashboard.stripe.com/account/apikeys
     * `STRIPE_PUBLIC_KEY` - Stripe public key, found here: https://dashboard.stripe.com/account/apikeys
-    * `STRIPE_ENDPOINT_SECRET` - Webhook signing secret, found here: https://dashboard.stripe.com/webhooks (click on the Charge webhook then "Click to reveal")
+    * `STRIPE_WEBHOOK_SECRET` - Webhook signing secret, found here: https://dashboard.stripe.com/webhooks (click on the Charge webhook then "Click to reveal")
 
 #### Example settings ####
 ```
