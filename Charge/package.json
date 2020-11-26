@@ -6,7 +6,7 @@
     "laravel-elixir": "^6.0.0-18",
     "laravel-elixir-vue": "^0.1.8",
     "laravel-elixir-webpack-official": "^1.0.10",
-    "vue": "^1.0.26",
+    "vue": "^3.0.3",
     "vue-truncate-filter": "^1.1.7"
   }
 }
